@@ -22,6 +22,14 @@ go.work.sum
 # Node dependencies
 /node_modules/
 
+# Data directory
+/data/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
 # OS files
 .DS_Store
 

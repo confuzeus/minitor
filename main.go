@@ -9,13 +9,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/confuzeus/minitor/internal/database"
 	"github.com/confuzeus/minitor/internal/handlers"
 	"github.com/confuzeus/minitor/internal/settings"
 	"github.com/confuzeus/minitor/internal/templates"
 	"github.com/go-chi/chi/v5"
 )
 
-func parseConfig() (cfg settings.Settings, dbPath string) {
+func parseConfig() (cfg settings.Settings, dbPath string, migrateOnly bool) {
 	var err error
 	cfg, err = settings.Parse()
 	if err != nil {
@@ -26,6 +27,7 @@ func parseConfig() (cfg settings.Settings, dbPath string) {
 	port := flag.String("port", cfg.Port, "HTTP listen port")
 	dataDir := flag.String("data-dir", cfg.DataDir, "directory for persistent data")
 	dbPathFlag := flag.String("db-path", "", "path to the sqlite database (default <data-dir>/minitor.db)")
+	migrateFlag := flag.Bool("migrate", false, "run database migrations and exit")
 	flag.Parse()
 
 	cfg.Port = *port
@@ -34,15 +36,27 @@ func parseConfig() (cfg settings.Settings, dbPath string) {
 	if dbPath == "" {
 		dbPath = filepath.Join(cfg.DataDir, "minitor.db")
 	}
-	return cfg, dbPath
+	return cfg, dbPath, *migrateFlag
 }
 
 func main() {
-	cfg, dbPath := parseConfig()
+	cfg, dbPath, migrateOnly := parseConfig()
 
 	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
 		slog.Error("create data directory", "error", err)
 		os.Exit(1)
+	}
+
+	db, err := database.Open(dbPath)
+	if err != nil {
+		slog.Error("initialize database", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	if migrateOnly {
+		slog.Info("migrations complete", "db", dbPath)
+		return
 	}
 
 	tmpl, err := templates.New(embeddedAssets)
@@ -64,7 +78,7 @@ func main() {
 		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
 	})
 
-	h := handlers.New(tmpl)
+	h := handlers.New(tmpl, db)
 	router.Get("/", h.Dashboard)
 
 	slog.Info("minitor starting", "port", cfg.Port, "data_dir", cfg.DataDir, "db", dbPath)

@@ -1,0 +1,30 @@
+# Binaries
+/minitor
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Tailwind build output
+/static/dist/
+
+# Node dependencies
+/node_modules/
+
+# OS files
+.DS_Store
+
+# Editor files
+.idea/
+.vscode/

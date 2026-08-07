@@ -1,0 +1,12 @@
+{
+  "name": "minitor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tailwind CLI build for Minitor (not required at runtime)",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/css/tailwind.css -o ./static/dist/tailwind.min.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.0.0"
+  }
+}

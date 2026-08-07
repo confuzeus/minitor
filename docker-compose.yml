@@ -1,0 +1,13 @@
+services:
+  minitor:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - DATA_DIR=/data
+    volumes:
+      - minitor-data:/data
+
+volumes:
+  minitor-data:

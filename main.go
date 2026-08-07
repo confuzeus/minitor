@@ -10,46 +10,37 @@ import (
 	"path/filepath"
 
 	"github.com/confuzeus/minitor/internal/handlers"
+	"github.com/confuzeus/minitor/internal/settings"
 	"github.com/confuzeus/minitor/internal/templates"
 	"github.com/go-chi/chi/v5"
 )
 
-const defaultPort = "8080"
-
-type config struct {
-	port    string
-	dataDir string
-	dbPath  string
-}
-
-func parseConfig() config {
-	cfg := config{
-		port:    envOr("PORT", defaultPort),
-		dataDir: envOr("DATA_DIR", "data"),
+func parseConfig() (cfg settings.Settings, dbPath string) {
+	var err error
+	cfg, err = settings.Parse()
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
 	}
 
-	flag.StringVar(&cfg.port, "port", cfg.port, "HTTP listen port")
-	flag.StringVar(&cfg.dataDir, "data-dir", cfg.dataDir, "directory for persistent data")
-	flag.StringVar(&cfg.dbPath, "db-path", "", "path to the sqlite database (default <data-dir>/minitor.db)")
+	port := flag.String("port", cfg.Port, "HTTP listen port")
+	dataDir := flag.String("data-dir", cfg.DataDir, "directory for persistent data")
+	dbPathFlag := flag.String("db-path", "", "path to the sqlite database (default <data-dir>/minitor.db)")
 	flag.Parse()
 
-	if cfg.dbPath == "" {
-		cfg.dbPath = filepath.Join(cfg.dataDir, "minitor.db")
+	cfg.Port = *port
+	cfg.DataDir = *dataDir
+	dbPath = *dbPathFlag
+	if dbPath == "" {
+		dbPath = filepath.Join(cfg.DataDir, "minitor.db")
 	}
-	return cfg
-}
-
-func envOr(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
+	return cfg, dbPath
 }
 
 func main() {
-	cfg := parseConfig()
+	cfg, dbPath := parseConfig()
 
-	if err := os.MkdirAll(cfg.dataDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
 		slog.Error("create data directory", "error", err)
 		os.Exit(1)
 	}
@@ -76,9 +67,9 @@ func main() {
 	h := handlers.New(tmpl)
 	router.Get("/", h.Dashboard)
 
-	slog.Info("minitor starting", "port", cfg.port, "data_dir", cfg.dataDir, "db", cfg.dbPath)
-	slog.Info("minitor listening", "addr", ":"+cfg.port)
-	if err := http.ListenAndServe(":"+cfg.port, router); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	slog.Info("minitor starting", "port", cfg.Port, "data_dir", cfg.DataDir, "db", dbPath)
+	slog.Info("minitor listening", "addr", ":"+cfg.Port)
+	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("server error", "error", err)
 		os.Exit(1)
 	}

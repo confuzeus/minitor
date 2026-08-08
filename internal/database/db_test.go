@@ -43,8 +43,8 @@ func TestOpen(t *testing.T) {
 	if err := db.QueryRow("SELECT version, dirty FROM schema_migrations").Scan(&version, &dirty); err != nil {
 		t.Fatalf("read migration state: %v", err)
 	}
-	if version != 5 {
-		t.Errorf("migration version = %d, want 5", version)
+	if version != 7 {
+		t.Errorf("migration version = %d, want 7", version)
 	}
 	if dirty {
 		t.Error("migration state is dirty, want clean")
@@ -85,8 +85,8 @@ func TestOpenIdempotentMigrations(t *testing.T) {
 	if err := db.QueryRow("SELECT version FROM schema_migrations").Scan(&version); err != nil {
 		t.Fatalf("read migration version: %v", err)
 	}
-	if version != 5 {
-		t.Errorf("migration version = %d, want 5 (no migration should re-run)", version)
+	if version != 7 {
+		t.Errorf("migration version = %d, want 7 (no migration should re-run)", version)
 	}
 }
 
@@ -155,8 +155,8 @@ func TestFailedMigrationClearsDirtyFlag(t *testing.T) {
 	if err := db.QueryRow("SELECT version FROM schema_migrations").Scan(&version); err != nil {
 		t.Fatalf("read migration version: %v", err)
 	}
-	if version != 5 {
-		t.Errorf("migration version = %d, want 5", version)
+	if version != 7 {
+		t.Errorf("migration version = %d, want 7", version)
 	}
 }
 

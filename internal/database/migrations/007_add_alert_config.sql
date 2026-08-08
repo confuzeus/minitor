@@ -1,0 +1,3 @@
+ALTER TABLE monitor_alerts ADD COLUMN on_down BOOLEAN NOT NULL DEFAULT 1;
+ALTER TABLE monitor_alerts ADD COLUMN on_recovery BOOLEAN NOT NULL DEFAULT 1;
+ALTER TABLE monitor_alerts ADD COLUMN consecutive_failures INTEGER NOT NULL DEFAULT 3;

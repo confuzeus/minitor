@@ -9,8 +9,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/confuzeus/minitor/internal/alerter"
+	"github.com/confuzeus/minitor/internal/auth"
 	"github.com/confuzeus/minitor/internal/database"
 	"github.com/confuzeus/minitor/internal/handlers"
+	"github.com/confuzeus/minitor/internal/probe"
 	"github.com/confuzeus/minitor/internal/settings"
 	"github.com/confuzeus/minitor/internal/templates"
 	"github.com/go-chi/chi/v5"
@@ -78,8 +81,19 @@ func main() {
 		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
 	})
 
-	h := handlers.New(tmpl, db)
+	h := handlers.New(tmpl, db, &cfg)
+
+	sched := probe.NewScheduler(db)
+	alert := alerter.New(db, cfg.SMTP)
+	sched.SetNotifier(alert.Notify)
+	sched.Start()
+	defer sched.Stop()
+
+	router.Use(auth.AuthMiddleware(&cfg))
 	router.Get("/", h.Dashboard)
+	router.Get("/login", h.LoginPage)
+	router.Post("/login", h.Login)
+	router.Post("/logout", h.Logout)
 
 	slog.Info("minitor starting", "port", cfg.Port, "data_dir", cfg.DataDir, "db", dbPath)
 	slog.Info("minitor listening", "addr", ":"+cfg.Port)

@@ -1,0 +1,1 @@
+ALTER TABLE monitors ADD COLUMN follow_redirects BOOLEAN NOT NULL DEFAULT 0;

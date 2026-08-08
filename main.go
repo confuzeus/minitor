@@ -60,6 +60,54 @@ func parseConfig() (cfg settings.Settings, dbPath string, migrateOnly bool) {
 	return cfg, dbPath, *migrateFlag
 }
 
+// newRouter builds the HTTP handler with its public and protected route groups.
+// It is shared by main and the integration tests so tests exercise the same
+// routing as production.
+func newRouter(h *handlers.Handler, cfg *settings.Settings, staticHandler http.Handler) http.Handler {
+	router := chi.NewRouter()
+
+	// Public routes: accessible without authentication.
+	router.Group(func(r chi.Router) {
+		r.Handle("/static/*", staticHandler)
+		r.Get("/static", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
+		})
+		r.Get("/login", h.LoginPage)
+		r.Post("/login", h.Login)
+		r.Post("/logout", h.Logout)
+		r.Get("/api/status", h.Status)
+	})
+
+	// Protected routes: require a valid session when ADMIN_PASSWORD is set.
+	router.Group(func(r chi.Router) {
+		r.Use(auth.AuthMiddleware(cfg))
+
+		r.Get("/", h.Dashboard)
+		r.Get("/api/monitors", h.MonitorCards)
+		r.Get("/api/monitors/{id}/stats", h.MonitorStats)
+
+		r.Get("/monitors", h.ListMonitors)
+		r.Get("/monitors/new", h.NewMonitor)
+		r.Post("/monitors", h.CreateMonitor)
+		r.Get("/monitors/{id}", h.MonitorDetail)
+		r.Get("/monitors/{id}/edit", h.EditMonitor)
+		r.Put("/monitors/{id}", h.UpdateMonitor)
+		r.Delete("/monitors/{id}", h.DeleteMonitor)
+
+		// No-JS fallbacks for htmx forms, which can only issue POST natively.
+		r.Post("/monitors/{id}", h.UpdateMonitor)
+		r.Post("/monitors/{id}/delete", h.DeleteMonitor)
+
+		r.Get("/alerts", h.ListAlerts)
+		r.Post("/alerts", h.CreateAlertRecipient)
+		r.Delete("/alerts/{id}", h.DeleteAlertRecipient)
+		r.Delete("/alerts/{id}/delete", h.DeleteAlertRecipient)
+		r.Post("/alerts/{id}/delete", h.DeleteAlertRecipient)
+	})
+
+	return router
+}
+
 func main() {
 	cfg, dbPath, migrateOnly := parseConfig()
 
@@ -101,46 +149,7 @@ func main() {
 
 	h := handlers.New(tmpl, db, &cfg, sched)
 
-	router := chi.NewRouter()
-
-	// Public routes: accessible without authentication.
-	router.Group(func(r chi.Router) {
-		r.Handle("/static/*", staticHandler)
-		r.Get("/static", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
-		})
-		r.Get("/login", h.LoginPage)
-		r.Post("/login", h.Login)
-		r.Post("/logout", h.Logout)
-		r.Get("/api/status", h.Status)
-	})
-
-	// Protected routes: require a valid session when ADMIN_PASSWORD is set.
-	router.Group(func(r chi.Router) {
-		r.Use(auth.AuthMiddleware(&cfg))
-
-		r.Get("/", h.Dashboard)
-		r.Get("/api/monitors", h.MonitorCards)
-		r.Get("/api/monitors/{id}/stats", h.MonitorStats)
-
-		r.Get("/monitors", h.ListMonitors)
-		r.Get("/monitors/new", h.NewMonitor)
-		r.Post("/monitors", h.CreateMonitor)
-		r.Get("/monitors/{id}", h.MonitorDetail)
-		r.Get("/monitors/{id}/edit", h.EditMonitor)
-		r.Put("/monitors/{id}", h.UpdateMonitor)
-		r.Delete("/monitors/{id}", h.DeleteMonitor)
-
-		// No-JS fallbacks for htmx forms, which can only issue POST natively.
-		r.Post("/monitors/{id}", h.UpdateMonitor)
-		r.Post("/monitors/{id}/delete", h.DeleteMonitor)
-
-		r.Get("/alerts", h.ListAlerts)
-		r.Post("/alerts", h.CreateAlertRecipient)
-		r.Delete("/alerts/{id}", h.DeleteAlertRecipient)
-		r.Delete("/alerts/{id}/delete", h.DeleteAlertRecipient)
-		r.Post("/alerts/{id}/delete", h.DeleteAlertRecipient)
-	})
+	router := newRouter(h, &cfg, staticHandler)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

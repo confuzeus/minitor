@@ -2,6 +2,10 @@ module github.com/confuzeus/minitor
 
 go 1.25.5
 
+// Pin the default toolchain to a patched release. The 1.25.5 stdlib carries
+// known vulnerabilities (see govulncheck); 1.25.12 has none.
+toolchain go1.25.12
+
 require (
 	github.com/go-chi/chi/v5 v5.3.1
 	modernc.org/sqlite v1.56.0

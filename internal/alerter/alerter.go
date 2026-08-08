@@ -7,18 +7,35 @@ import (
 	"net"
 	"net/smtp"
 	"strings"
+	"sync"
 
 	"github.com/confuzeus/minitor/internal/models"
 	"github.com/confuzeus/minitor/internal/settings"
 )
 
+// SendMailFunc delivers an email message to the given recipients over SMTP. It
+// mirrors the signature of net/smtp.SendMail and is injectable so tests can
+// capture outgoing alert emails without a real SMTP server.
+type SendMailFunc func(addr string, a smtp.Auth, from string, to []string, msg []byte) error
+
 type Alerter struct {
 	smtp settings.SMTPConfig
 	db   *sql.DB
+
+	mu       sync.RWMutex
+	sendMail SendMailFunc
 }
 
 func New(db *sql.DB, smtp settings.SMTPConfig) *Alerter {
 	return &Alerter{db: db, smtp: smtp}
+}
+
+// SetSendMail replaces the SMTP delivery function. It is safe to call
+// concurrently with sending, though it is intended for tests.
+func (a *Alerter) SetSendMail(f SendMailFunc) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.sendMail = f
 }
 
 // Notify is called by the probe scheduler after a probe result is persisted.
@@ -190,7 +207,14 @@ func (a *Alerter) send(recipients []models.AlertRecipient, subject, body string)
 	}
 
 	msg := buildEmailMessage(a.smtp.From, to, subject, body)
-	if err := smtp.SendMail(addr, auth, a.smtp.From, to, msg); err != nil {
+
+	a.mu.RLock()
+	sendMail := a.sendMail
+	a.mu.RUnlock()
+	if sendMail == nil {
+		sendMail = smtp.SendMail
+	}
+	if err := sendMail(addr, auth, a.smtp.From, to, msg); err != nil {
 		slog.Error("alerter: failed to send email", "error", err, "to", to, "subject", subject)
 		return
 	}

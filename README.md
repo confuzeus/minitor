@@ -126,6 +126,8 @@ journalctl -u minitor -f
 
 All configuration is done through environment variables. There is no config file and no settings UI.
 
+Minitor auto-loads a `.env` file (plus an optional `.env.local` override) from the current working directory at startup, so you can keep configuration out of the shell. Real environment variables always take precedence over `.env` values, and `.env.local` overrides `.env`. A missing or malformed auto-loaded `.env` is logged as a warning rather than a startup failure; pass `--env-file /path/to/file` to load from a different location (errors on an explicitly requested file are fatal), or `--env-file ""` to disable loading. Note that `$VAR` expansion happens per-file, so `.env.local` values cannot reference variables defined in `.env`.
+
 | Variable | Default | Description |
 | --- | --- | --- |
 | `PORT` | `8080` | HTTP listen port |

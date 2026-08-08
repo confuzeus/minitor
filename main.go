@@ -22,15 +22,56 @@ import (
 	"github.com/confuzeus/minitor/internal/settings"
 	"github.com/confuzeus/minitor/internal/templates"
 	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 )
 
 // version is injected at build time via -ldflags "-X main.version=<ver>".
 var version = "dev"
 
+// loadDotenv reads the specified .env file, plus an optional <file>.local
+// override, into the process environment. Variables already set in the
+// environment win; .env.local overrides .env. A zero envFile disables loading.
+// When lenient (the auto-loaded default), a present but unreadable or
+// malformed file is logged as a warning so an unrelated .env in the working
+// directory cannot prevent startup; an explicitly requested file fails.
+func loadDotenv(envFile string, lenient bool) error {
+	if envFile == "" {
+		return nil
+	}
+
+	envMap := map[string]string{}
+	for _, f := range []string{envFile, envFile + ".local"} {
+		fileMap, err := godotenv.Read(f)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			if lenient {
+				slog.Warn("cannot load env file; ignoring", "file", f, "error", err)
+				continue
+			}
+			return fmt.Errorf("%s: %w", f, err)
+		}
+		for k, v := range fileMap {
+			envMap[k] = v
+		}
+	}
+
+	for k, v := range envMap {
+		if _, ok := os.LookupEnv(k); !ok {
+			if err := os.Setenv(k, v); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func parseConfig() (cfg settings.Settings, dbPath string, migrateOnly bool) {
 	port := flag.String("port", "", "HTTP listen port")
 	dataDir := flag.String("data-dir", "", "directory for persistent data")
 	dbPathFlag := flag.String("db-path", "", "path to the sqlite database (default <data-dir>/minitor.db)")
+	envFile := flag.String("env-file", ".env", "path to a .env file to load (empty disables)")
 	migrateFlag := flag.Bool("migrate", false, "run database migrations and exit")
 	versionFlag := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
@@ -38,6 +79,18 @@ func parseConfig() (cfg settings.Settings, dbPath string, migrateOnly bool) {
 	if *versionFlag {
 		fmt.Println(version)
 		os.Exit(0)
+	}
+
+	lenient := true
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "env-file" {
+			lenient = false
+		}
+	})
+
+	if err := loadDotenv(*envFile, lenient); err != nil {
+		slog.Error("load env file", "error", err)
+		os.Exit(1)
 	}
 
 	var err error

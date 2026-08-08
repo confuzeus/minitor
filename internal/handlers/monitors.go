@@ -35,6 +35,7 @@ func (h *Handler) ListMonitors(w http.ResponseWriter, r *http.Request) {
 
 	data := map[string]any{
 		"Title":          "Monitors",
+		"CurrentPage":    "monitors",
 		"ShowNav":        true,
 		"Authenticated":  h.Settings.AdminPassword != "",
 		"SMTPConfigured": h.Settings.SMTP.Host != "",
@@ -92,6 +93,7 @@ func (h *Handler) MonitorDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data["Title"] = data["Monitor"].(models.Monitor).Name
+	data["CurrentPage"] = "monitors"
 	data["ShowNav"] = true
 	data["Authenticated"] = h.Settings.AdminPassword != ""
 	data["SMTPConfigured"] = h.Settings.SMTP.Host != ""
@@ -225,6 +227,7 @@ func parseMonitorForm(r *http.Request) (models.Monitor, error) {
 	}
 
 	require("name is required", m.Name != "")
+	require("name must be 100 characters or fewer", len([]rune(m.Name)) <= 100)
 	require("url is required", m.URL != "")
 
 	if interval, ok := parsePositiveInt(r.FormValue("interval")); ok {
@@ -277,6 +280,7 @@ func (h *Handler) renderMonitorForm(w http.ResponseWriter, r *http.Request, isNe
 	}
 	data := map[string]any{
 		"Title":          title,
+		"CurrentPage":    "monitors",
 		"ShowNav":        true,
 		"Authenticated":  h.Settings.AdminPassword != "",
 		"SMTPConfigured": h.Settings.SMTP.Host != "",

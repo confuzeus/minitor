@@ -179,6 +179,7 @@ func (h *Handler) renderAlerts(w http.ResponseWriter, r *http.Request, form aler
 
 	data := map[string]any{
 		"Title":          "Alerts",
+		"CurrentPage":    "alerts",
 		"ShowNav":        true,
 		"Authenticated":  h.Settings.AdminPassword != "",
 		"SMTPConfigured": h.Settings.SMTP.Host != "",

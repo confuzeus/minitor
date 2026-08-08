@@ -1,9 +1,9 @@
 {{define "content"}}
 <div>
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-[20px] leading-[28px] font-semibold text-slate-800">Dashboard</h1>
+    <h1 class="text-heading font-semibold text-ink">Dashboard</h1>
     <a href="/monitors/new"
-      class="inline-flex items-center px-4 py-2 bg-[#FF6B57] hover:bg-[#E55A48] text-white text-[14px] leading-[20px] font-medium rounded-md">
+      class="inline-flex items-center px-4 py-2 bg-brand hover:bg-brand-hover text-white text-body font-medium rounded-md">
       Add Monitor
     </a>
   </div>
@@ -22,22 +22,22 @@
 <div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
   {{range .Monitors}}
   <a href="/monitors/{{.Monitor.ID}}"
-    class="block bg-white border border-[#DCE1E8] rounded-lg p-6 hover:shadow-md transition-shadow">
+    class="block bg-surface border border-border rounded-lg p-6 hover:shadow-md transition-shadow">
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
-        <h2 class="text-[16px] leading-[24px] font-medium text-slate-800 truncate">{{.Monitor.Name}}</h2>
-        <p class="text-[12px] leading-[18px] text-slate-500 truncate mt-1">{{.Monitor.URL}}</p>
+        <h2 class="text-subheading font-medium text-ink truncate">{{.Monitor.Name}}</h2>
+        <p class="text-small text-ink-secondary truncate mt-1">{{.Monitor.URL}}</p>
       </div>
       <div class="flex items-center gap-2 shrink-0">
-        <span class="inline-flex items-center px-2 py-0.5 rounded-[12px] text-[12px] leading-[18px] font-medium bg-[#EEF1F5] text-[#64748B]">{{.Monitor.Type}}</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-[12px] text-small font-medium bg-surface-alt text-ink-secondary">{{.Monitor.Type}}</span>
         {{if .LatestResult}}
-        <span class="w-2.5 h-2.5 rounded-full {{if eq .LatestResult.Status "up"}}bg-[#10B981]{{else}}bg-[#EF4444]{{end}}" title="{{.LatestResult.Status}}"></span>
+        <span class="w-2.5 h-2.5 rounded-full {{if eq .LatestResult.Status "up"}}bg-success{{else}}bg-danger animate-pulse-dot{{end}}" title="{{.LatestResult.Status}}"></span>
         {{else}}
-        <span class="w-2.5 h-2.5 rounded-full bg-[#A0AEC0]" title="Never checked"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-ink-muted" title="Never checked"></span>
         {{end}}
       </div>
     </div>
-    <div class="mt-4 pt-4 border-t border-[#DCE1E8] flex items-center justify-between text-[12px] leading-[18px] text-slate-500">
+    <div class="mt-4 pt-4 border-t border-border flex items-center justify-between text-small text-ink-secondary">
       <span>Last checked: {{if .LatestResult}}{{.LatestResult.Timestamp}}{{else}}Never{{end}}</span>
       <span>Response: {{if and .LatestResult .LatestResult.LatencyMs}}{{.LatestResult.LatencyMs}}ms{{else}}—{{end}}</span>
     </div>
@@ -45,11 +45,11 @@
   {{end}}
 </div>
 {{else}}
-<div class="bg-white border border-dashed border-[#DCE1E8] rounded-lg p-16 text-center">
-  <h2 class="text-[16px] leading-[24px] font-medium text-slate-800">No monitors yet</h2>
-  <p class="text-[14px] leading-[20px] text-slate-500 mt-2">Add your first monitor to start tracking uptime and response times.</p>
+<div class="bg-surface border border-dashed border-border rounded-lg p-16 text-center">
+  <h2 class="text-subheading font-medium text-ink">No monitors yet</h2>
+  <p class="text-body text-ink-secondary mt-2">Add your first monitor to start tracking uptime and response times.</p>
   <a href="/monitors/new"
-    class="inline-flex items-center px-4 py-2 mt-6 bg-[#FF6B57] hover:bg-[#E55A48] text-white text-[14px] leading-[20px] font-medium rounded-md">
+    class="inline-flex items-center px-4 py-2 mt-6 bg-brand hover:bg-brand-hover text-white text-body font-medium rounded-md">
     Add Monitor
   </a>
 </div>

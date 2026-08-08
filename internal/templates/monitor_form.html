@@ -1,13 +1,13 @@
 {{define "content"}}
 <div class="max-w-[560px]">
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-[20px] leading-[28px] font-semibold text-slate-800">{{if .IsNew}}New Monitor{{else}}Edit Monitor{{end}}</h1>
+    <h1 class="text-heading font-semibold text-ink">{{if .IsNew}}New Monitor{{else}}Edit Monitor{{end}}</h1>
     <a href="{{if .IsNew}}/monitors{{else}}/monitors/{{.Monitor.ID}}{{end}}"
-      class="text-[14px] leading-[20px] font-medium text-[#64748B] hover:text-slate-800">Cancel</a>
+      class="text-body font-medium text-ink-secondary hover:text-ink">Cancel</a>
   </div>
 
   {{if .Error}}
-  <div class="mb-6 bg-[#FEF2F2] border border-[#FCA5A5] text-[#B91C1C] rounded-md px-4 py-3 text-[14px] leading-[20px]">
+  <div class="mb-6 bg-danger-tint border border-danger/40 text-danger-dark rounded-md px-4 py-3 text-body">
     {{.Error}}
   </div>
   {{end}}
@@ -15,71 +15,75 @@
   <form hx-{{if .IsNew}}post{{else}}put{{end}}="{{if .IsNew}}/monitors{{else}}/monitors/{{.Monitor.ID}}{{end}}"
     hx-target="body" hx-swap="innerHTML"
     method="POST"
-    class="bg-white border border-[#DCE1E8] rounded-lg p-6 space-y-6">
+    class="bg-surface border border-border rounded-lg p-6 space-y-6">
     <input type="hidden" name="type" value="{{.Monitor.Type}}">
 
-    <div>
-      <label for="name" class="block text-[14px] leading-[20px] font-medium text-slate-800 mb-1">Name</label>
-      <input id="name" name="name" type="text" required value="{{.Monitor.Name}}"
-        class="w-full px-3 py-2 border border-[#DCE1E8] rounded-md text-[14px] leading-[20px] text-slate-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-[#FF6B57]/40 focus:border-[#FF6B57]">
+    <div x-data="{ nameCount: 0 }" x-init="nameCount = $refs.name.value.length">
+      <div class="flex items-center justify-between mb-1">
+        <label for="name" class="block text-body font-medium text-ink">Name</label>
+        <span class="text-small text-ink-muted"><span x-text="nameCount"></span>/100</span>
+      </div>
+      <input id="name" x-ref="name" name="name" type="text" required maxlength="100" value="{{.Monitor.Name}}"
+        @input="nameCount = $el.value.length"
+        class="w-full px-3 py-2 border border-border rounded-md text-body text-ink bg-surface focus:outline-none focus:ring-[3px] focus:ring-brand/40 focus:border-brand">
     </div>
 
     <div>
-      <label for="url" class="block text-[14px] leading-[20px] font-medium text-slate-800 mb-1">Target URL</label>
+      <label for="url" class="block text-body font-medium text-ink mb-1">Target URL</label>
       <input id="url" name="url" type="url" required placeholder="https://example.com" value="{{.Monitor.URL}}"
-        class="w-full px-3 py-2 border border-[#DCE1E8] rounded-md text-[14px] leading-[20px] text-slate-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-[#FF6B57]/40 focus:border-[#FF6B57]">
+        class="w-full px-3 py-2 border border-border rounded-md text-body text-ink bg-surface focus:outline-none focus:ring-[3px] focus:ring-brand/40 focus:border-brand">
     </div>
 
     <div class="grid grid-cols-2 gap-4">
       <div>
-        <label for="interval" class="block text-[14px] leading-[20px] font-medium text-slate-800 mb-1">Interval (seconds)</label>
+        <label for="interval" class="block text-body font-medium text-ink mb-1">Interval (seconds)</label>
         <input id="interval" name="interval" type="number" required min="1" step="1" value="{{.Monitor.Interval}}"
-          class="w-full px-3 py-2 border border-[#DCE1E8] rounded-md text-[14px] leading-[20px] text-slate-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-[#FF6B57]/40 focus:border-[#FF6B57]">
+          class="w-full px-3 py-2 border border-border rounded-md text-body text-ink bg-surface focus:outline-none focus:ring-[3px] focus:ring-brand/40 focus:border-brand">
       </div>
       <div>
-        <label for="timeout" class="block text-[14px] leading-[20px] font-medium text-slate-800 mb-1">Timeout (seconds)</label>
+        <label for="timeout" class="block text-body font-medium text-ink mb-1">Timeout (seconds)</label>
         <input id="timeout" name="timeout" type="number" required min="1" step="1" value="{{.Monitor.Timeout}}"
-          class="w-full px-3 py-2 border border-[#DCE1E8] rounded-md text-[14px] leading-[20px] text-slate-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-[#FF6B57]/40 focus:border-[#FF6B57]">
+          class="w-full px-3 py-2 border border-border rounded-md text-body text-ink bg-surface focus:outline-none focus:ring-[3px] focus:ring-brand/40 focus:border-brand">
       </div>
     </div>
 
     <div>
-      <label for="expected_status_code" class="block text-[14px] leading-[20px] font-medium text-slate-800 mb-1">Expected status code</label>
+      <label for="expected_status_code" class="block text-body font-medium text-ink mb-1">Expected status code</label>
       <input id="expected_status_code" name="expected_status_code" type="number" min="100" max="599" step="1" placeholder="200"
         value="{{if .Monitor.ExpectedStatusCode}}{{.Monitor.ExpectedStatusCode}}{{end}}"
-        class="w-full px-3 py-2 border border-[#DCE1E8] rounded-md text-[14px] leading-[20px] text-slate-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-[#FF6B57]/40 focus:border-[#FF6B57]">
-      <p class="text-[12px] leading-[18px] text-[#A0AEC0] mt-1">Optional. Results outside this code are flagged as down.</p>
+        class="w-full px-3 py-2 border border-border rounded-md text-body text-ink bg-surface focus:outline-none focus:ring-[3px] focus:ring-brand/40 focus:border-brand">
+      <p class="text-small text-ink-muted mt-1">Optional. Results outside this code are flagged as down.</p>
     </div>
 
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-[14px] leading-[20px] font-medium text-slate-800">Follow redirects</p>
-          <p class="text-[12px] leading-[18px] text-[#64748B]">Follow 3xx redirects when checking.</p>
+          <p class="text-body font-medium text-ink">Follow redirects</p>
+          <p class="text-small text-ink-secondary">Follow 3xx redirects when checking.</p>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" name="follow_redirects" class="sr-only peer" {{if .Monitor.FollowRedirects}}checked{{end}}>
-          <div class="w-10 h-6 bg-[#DCE1E8] peer-focus:ring-[3px] peer-focus:ring-[#FF6B57]/40 rounded-full peer-checked:bg-[#10B981] transition-colors"></div>
+          <div class="w-10 h-6 bg-border peer-focus:ring-[3px] peer-focus:ring-brand/40 rounded-full peer-checked:bg-success transition-colors"></div>
         </label>
       </div>
 
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-[14px] leading-[20px] font-medium text-slate-800">Enabled</p>
-          <p class="text-[12px] leading-[18px] text-[#64748B]">Start checking this monitor immediately.</p>
+          <p class="text-body font-medium text-ink">Enabled</p>
+          <p class="text-small text-ink-secondary">Start checking this monitor immediately.</p>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" name="enabled" class="sr-only peer" {{if .Monitor.Enabled}}checked{{end}}>
-          <div class="w-10 h-6 bg-[#DCE1E8] peer-focus:ring-[3px] peer-focus:ring-[#FF6B57]/40 rounded-full peer-checked:bg-[#10B981] transition-colors"></div>
+          <div class="w-10 h-6 bg-border peer-focus:ring-[3px] peer-focus:ring-brand/40 rounded-full peer-checked:bg-success transition-colors"></div>
         </label>
       </div>
     </div>
 
     <div class="flex items-center justify-end gap-3 pt-2">
       <a href="{{if .IsNew}}/monitors{{else}}/monitors/{{.Monitor.ID}}{{end}}"
-        class="px-4 py-2 text-[14px] leading-[20px] font-medium text-[#64748B] hover:text-slate-800 rounded-md">Cancel</a>
+        class="px-4 py-2 text-body font-medium text-ink-secondary hover:text-ink rounded-md">Cancel</a>
       <button type="submit"
-        class="px-4 py-2 bg-[#FF6B57] hover:bg-[#E55A48] text-white text-[14px] leading-[20px] font-medium rounded-md">
+        class="px-4 py-2 bg-brand hover:bg-brand-hover text-white text-body font-medium rounded-md">
         {{if .IsNew}}Create Monitor{{else}}Save Changes{{end}}
       </button>
     </div>

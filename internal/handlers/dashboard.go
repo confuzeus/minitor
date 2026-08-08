@@ -45,6 +45,7 @@ func (h *Handler) dashboardData() (map[string]any, error) {
 
 	return map[string]any{
 		"Title":          "Dashboard",
+		"CurrentPage":    "dashboard",
 		"ShowNav":        true,
 		"Authenticated":  h.Settings.AdminPassword != "",
 		"SMTPConfigured": h.Settings.SMTP.Host != "",

@@ -1,5 +1,7 @@
 set shell := ["bash", "-uc"]
 
+VERSION := `git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo "dev"`
+
 default:
     @just --list
 
@@ -10,7 +12,14 @@ dev:
 # Build CSS and compile the binary
 build:
     npm run build:css
-    go build -o minitor .
+    go build -ldflags "-s -w -X main.version={{ VERSION }}" -o minitor .
+
+# Build the Docker image tagged with the current version
+docker-build:
+    docker build --build-arg VERSION={{ VERSION }} -t dockershepherd/minitor:{{ VERSION }} .
+
+docker-push:
+    docker push dockershepherd/minitor:{{ VERSION }}
 
 # Run all Go tests
 test:

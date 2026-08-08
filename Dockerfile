@@ -12,13 +12,14 @@ RUN npm ci && npm run build:css
 
 # Stage 2: Compile the statically linked Go binary.
 FROM golang:1.25-alpine AS build-go
-ARG VERSION=dev
+ARG VERSION
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=build-css /src/static/dist ./static/dist
-RUN CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o /minitor . \
+RUN VERSION=${VERSION:-dev} \
+    && CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o /minitor . \
     && mkdir -p /data
 
 # Stage 3: Minimal runtime image with a non-root user, entrypoint, and su-exec

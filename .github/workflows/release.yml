@@ -39,7 +39,7 @@ jobs:
         run: CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=$GITHUB_REF_NAME" -o minitor .
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: minitor
           generate_release_notes: true

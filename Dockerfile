@@ -22,11 +22,19 @@ RUN CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o /minit
     && mkdir -p /data \
     && chown -R 65532:65532 /data
 
-# Stage 3: Minimal runtime image with ca-certificates, tzdata, and a non-root user.
-FROM gcr.io/distroless/static-debian12:nonroot
+# Stage 3: Minimal runtime image with a non-root user, entrypoint, and su-exec
+# (gosu is not packaged on Alpine; su-exec is its drop-in equivalent).
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates tzdata su-exec \
+    && adduser -D -H -s /sbin/nologin minitor
+
 COPY --from=build-go /minitor /minitor
-# Pre-create the data directory owned by the non-root user (65532). This also
-# seeds fresh Docker named volumes with the correct ownership on first mount.
-COPY --from=build-go --chown=65532:65532 /data /data
+# Pre-create the data directory owned by the app user. This also seeds fresh
+# Docker named volumes with the correct ownership on first mount.
+COPY --from=build-go --chown=minitor:minitor /data /data
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 EXPOSE 8080
-ENTRYPOINT ["/minitor"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

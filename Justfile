@@ -28,6 +28,10 @@ docker-build:
 docker-push:
     docker push dockershepherd/minitor:{{ VERSION }}
 
+# Push the dev Docker image tagged with the git commit hash (for development)
+docker-push-dev:
+    docker push dockershepherd/minitor:$$(git rev-parse --short HEAD)
+
 # Run all Go tests
 test:
     go test ./...

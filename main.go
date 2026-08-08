@@ -91,7 +91,9 @@ func main() {
 	h := handlers.New(tmpl, db, &cfg, sched)
 
 	router.Get("/", h.Dashboard)
+	router.Get("/api/status", h.Status)
 	router.Get("/api/monitors", h.MonitorCards)
+	router.Get("/api/monitors/{id}/stats", h.MonitorStats)
 	router.Get("/login", h.LoginPage)
 	router.Post("/login", h.Login)
 	router.Post("/logout", h.Logout)

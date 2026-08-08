@@ -18,6 +18,15 @@
     </div>
   </div>
 
+  {{template "monitor-stats" .}}
+</div>
+{{end}}
+
+{{define "monitor-stats"}}
+<div id="monitor-stats"
+  hx-get="/api/monitors/{{.Monitor.ID}}/stats"
+  hx-trigger="every 30s"
+  hx-swap="outerHTML">
   <div class="bg-white border border-[#DCE1E8] rounded-lg p-6 mb-6">
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0">

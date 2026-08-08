@@ -81,40 +81,53 @@ func (h *Handler) MonitorDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, err := models.GetMonitorByID(h.DB, id)
+	data, err := h.monitorDetailData(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if m == nil {
+	if data == nil {
 		http.NotFound(w, r)
 		return
 	}
 
+	data["Title"] = data["Monitor"].(models.Monitor).Name
+	data["ShowNav"] = true
+	data["Authenticated"] = h.Settings.AdminPassword != ""
+	data["SMTPConfigured"] = h.Settings.SMTP.Host != ""
+
+	if err := h.Templates.Render(w, "monitor_detail", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// monitorDetailData loads a monitor and its recent probe results for the
+// monitor detail page and its HTMX polling fragment. It returns nil data when
+// the monitor does not exist.
+func (h *Handler) monitorDetailData(id int64) (map[string]any, error) {
+	m, err := models.GetMonitorByID(h.DB, id)
+	if err != nil {
+		return nil, err
+	}
+	if m == nil {
+		return nil, nil
+	}
+
 	results, err := models.GetLastNResults(h.DB, id, 50)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
 	latest, err := models.GetLatestResultForMonitor(h.DB, id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
-	data := map[string]any{
-		"Title":          m.Name,
-		"ShowNav":        true,
-		"Authenticated":  h.Settings.AdminPassword != "",
-		"SMTPConfigured": h.Settings.SMTP.Host != "",
-		"Monitor":        *m,
-		"Latest":         latest,
-		"Results":        results,
-	}
-	if err := h.Templates.Render(w, "monitor_detail", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	return map[string]any{
+		"Monitor": *m,
+		"Latest":  latest,
+		"Results": results,
+	}, nil
 }
 
 // EditMonitor renders the edit form pre-populated with the monitor's values.

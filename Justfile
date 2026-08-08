@@ -14,6 +14,13 @@ build:
     npm run build:css
     go build -ldflags "-s -w -X main.version={{ VERSION }}" -o minitor .
 
+# Build the binary and Docker image using the git commit hash as the version (for development)
+dev-build:
+    DEVVERSION="$$(git rev-parse --short HEAD)" && \
+    npm run build:css && \
+    go build -ldflags "-s -w -X main.version=$$DEVVERSION" -o minitor . && \
+    docker build --build-arg VERSION=$$DEVVERSION -t dockershepherd/minitor:$$DEVVERSION .
+
 # Build the Docker image tagged with the current version
 docker-build:
     docker build --build-arg VERSION={{ VERSION }} -t dockershepherd/minitor:{{ VERSION }} .

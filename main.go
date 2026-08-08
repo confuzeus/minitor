@@ -69,6 +69,7 @@ func main() {
 	}
 
 	router := chi.NewRouter()
+	router.Use(auth.AuthMiddleware(&cfg))
 
 	staticFS, err := fs.Sub(embeddedAssets, "static/dist")
 	if err != nil {
@@ -89,8 +90,8 @@ func main() {
 	sched.Start()
 	defer sched.Stop()
 
-	router.Use(auth.AuthMiddleware(&cfg))
 	router.Get("/", h.Dashboard)
+	router.Get("/api/monitors", h.MonitorCards)
 	router.Get("/login", h.LoginPage)
 	router.Post("/login", h.Login)
 	router.Post("/logout", h.Logout)

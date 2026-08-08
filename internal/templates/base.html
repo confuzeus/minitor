@@ -3,11 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minitor</title>
+  <title>{{if .Title}}{{.Title}} — {{end}}Minitor</title>
   <link rel="stylesheet" href="/static/tailwind.min.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 </head>
-<body>
-  {{template "content" .}}
+<body class="min-h-screen flex flex-col bg-[#F8F9FB] text-slate-800">
+  {{if not .SMTPConfigured}}
+  <div class="bg-amber-50 border-b border-amber-200">
+    <div class="max-w-[1200px] mx-auto px-6 py-2 flex items-center justify-center text-[12px] leading-[18px] text-amber-800">
+      <span>SMTP is not configured, so email alerts will not be sent. Set the SMTP_* environment variables to enable them.</span>
+    </div>
+  </div>
+  {{end}}
+
+  {{if .ShowNav}}
+  <nav class="bg-white border-b border-[#DCE1E8]">
+    <div class="max-w-[1200px] mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="/" class="font-semibold">Minitor</a>
+      <div class="flex items-center gap-6">
+        <a href="/" class="text-[14px] leading-[20px] font-medium text-slate-500 hover:text-slate-800">Dashboard</a>
+        <a href="/monitors" class="text-[14px] leading-[20px] font-medium text-slate-500 hover:text-slate-800">Monitors</a>
+        <a href="/alerts" class="text-[14px] leading-[20px] font-medium text-slate-500 hover:text-slate-800">Alerts</a>
+        {{if .Authenticated}}
+        <form method="POST" action="/logout" class="inline">
+          <button type="submit" class="text-[14px] leading-[20px] font-medium text-slate-500 hover:text-slate-800">Logout</button>
+        </form>
+        {{end}}
+      </div>
+    </div>
+  </nav>
+  {{end}}
+
+  <main class="flex-1 w-full max-w-[1200px] mx-auto px-6 py-8">
+    {{template "content" .}}
+  </main>
 </body>
 </html>
 {{end}}

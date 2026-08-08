@@ -47,12 +47,19 @@ func New(assets fs.FS) (*Templates, error) {
 }
 
 func (t *Templates) Render(w io.Writer, page string, data any) error {
+	return t.ExecuteTemplate(w, page, "base", data)
+}
+
+// ExecuteTemplate renders a named template within a page template, bypassing
+// the base layout. It is used to return bare HTML fragments (e.g. for HTMX
+// partial updates).
+func (t *Templates) ExecuteTemplate(w io.Writer, page, name string, data any) error {
 	tmpl, ok := t.pages[page]
 	if !ok {
 		return fmt.Errorf("unknown template %q", page)
 	}
-	if err := tmpl.ExecuteTemplate(w, "base", data); err != nil {
-		return fmt.Errorf("execute template %q: %w", page, err)
+	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
+		return fmt.Errorf("execute template %q in %q: %w", name, page, err)
 	}
 	return nil
 }

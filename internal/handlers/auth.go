@@ -8,7 +8,12 @@ import (
 
 // LoginPage renders the login form.
 func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
-	if err := h.Templates.Render(w, "login", nil); err != nil {
+	data := map[string]any{
+		"Title":          "Login",
+		"ShowNav":        false,
+		"SMTPConfigured": h.Settings.SMTP.Host != "",
+	}
+	if err := h.Templates.Render(w, "login", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -20,7 +25,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	if !auth.ValidatePassword(password, h.Settings.AdminPassword) {
 		w.WriteHeader(http.StatusUnauthorized)
-		if err := h.Templates.Render(w, "login", map[string]any{"Error": "Invalid password"}); err != nil {
+		data := map[string]any{
+			"Error":          "Invalid password",
+			"Title":          "Login",
+			"ShowNav":        false,
+			"SMTPConfigured": h.Settings.SMTP.Host != "",
+		}
+		if err := h.Templates.Render(w, "login", data); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return

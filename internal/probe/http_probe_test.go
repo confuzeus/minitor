@@ -60,6 +60,41 @@ func TestRunHTTPProbeStatusCode(t *testing.T) {
 	}
 }
 
+func TestRunHTTPProbeExpectedStatus(t *testing.T) {
+	tests := []struct {
+		name             string
+		statusCode       int
+		expectedStatus   int
+		wantStatus       string
+	}{
+		{name: "matches", statusCode: http.StatusOK, expectedStatus: http.StatusOK, wantStatus: models.StatusUp},
+		{name: "mismatch down", statusCode: http.StatusOK, expectedStatus: http.StatusCreated, wantStatus: models.StatusDown},
+		{name: "mismatch up overrides 2xx", statusCode: http.StatusOK, expectedStatus: http.StatusNotFound, wantStatus: models.StatusDown},
+		{name: "matching non-2xx", statusCode: http.StatusNotFound, expectedStatus: http.StatusNotFound, wantStatus: models.StatusUp},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.statusCode)
+			}))
+			defer srv.Close()
+
+			monitor := testMonitor(srv.URL)
+			monitor.ExpectedStatusCode = &tt.expectedStatus
+
+			result := RunHTTPProbe(monitor)
+
+			if result.Status != tt.wantStatus {
+				t.Errorf("Status = %q, want %q", result.Status, tt.wantStatus)
+			}
+			if result.StatusCode == nil || *result.StatusCode != tt.statusCode {
+				t.Errorf("StatusCode = %v, want %d", result.StatusCode, tt.statusCode)
+			}
+		})
+	}
+}
+
 func TestRunHTTPProbeTimeout(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		select {

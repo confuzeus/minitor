@@ -6,26 +6,32 @@ import (
 )
 
 type Monitor struct {
-	ID              int64
-	Name            string
-	URL             string
-	Type            string
-	Interval        int
-	Timeout         int
-	FollowRedirects bool
-	Enabled         bool
-	CreatedAt       string
-	UpdatedAt       string
+	ID                 int64
+	Name               string
+	URL                string
+	Type               string
+	Interval           int
+	Timeout            int
+	FollowRedirects    bool
+	Enabled            bool
+	ExpectedStatusCode *int
+	CreatedAt          string
+	UpdatedAt          string
 }
 
-const monitorColumns = "id, name, url, type, interval, timeout, follow_redirects, enabled, created_at, updated_at"
+const monitorColumns = "id, name, url, type, interval, timeout, follow_redirects, enabled, expected_status_code, created_at, updated_at"
 
 func scanMonitor(row interface{ Scan(...any) error }) (*Monitor, error) {
 	var m Monitor
+	var expectedStatus sql.NullInt64
 	err := row.Scan(&m.ID, &m.Name, &m.URL, &m.Type, &m.Interval, &m.Timeout,
-		&m.FollowRedirects, &m.Enabled, &m.CreatedAt, &m.UpdatedAt)
+		&m.FollowRedirects, &m.Enabled, &expectedStatus, &m.CreatedAt, &m.UpdatedAt)
 	if err != nil {
 		return nil, err
+	}
+	if expectedStatus.Valid {
+		v := int(expectedStatus.Int64)
+		m.ExpectedStatusCode = &v
 	}
 	return &m, nil
 }
@@ -37,11 +43,11 @@ func CreateMonitor(db *sql.DB, m *Monitor) error {
 	if m.Timeout < 1 {
 		return fmt.Errorf("timeout must be at least 1 second")
 	}
-	query := `INSERT INTO monitors (name, url, type, interval, timeout, follow_redirects, enabled)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+	query := `INSERT INTO monitors (name, url, type, interval, timeout, follow_redirects, enabled, expected_status_code)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id, created_at, updated_at`
 	err := db.QueryRow(query, m.Name, m.URL, m.Type, m.Interval, m.Timeout,
-		m.FollowRedirects, m.Enabled).Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt)
+		m.FollowRedirects, m.Enabled, m.ExpectedStatusCode).Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create monitor: %w", err)
 	}
@@ -113,11 +119,11 @@ func UpdateMonitor(db *sql.DB, m *Monitor) error {
 	}
 	query := `UPDATE monitors SET
 		name = ?, url = ?, type = ?, interval = ?, timeout = ?,
-		follow_redirects = ?, enabled = ?, updated_at = CURRENT_TIMESTAMP
+		follow_redirects = ?, enabled = ?, expected_status_code = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 		RETURNING updated_at`
 	err := db.QueryRow(query, m.Name, m.URL, m.Type, m.Interval, m.Timeout,
-		m.FollowRedirects, m.Enabled, m.ID).Scan(&m.UpdatedAt)
+		m.FollowRedirects, m.Enabled, m.ExpectedStatusCode, m.ID).Scan(&m.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return sql.ErrNoRows

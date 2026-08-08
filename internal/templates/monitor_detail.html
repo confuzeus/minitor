@@ -1,1 +1,108 @@
-{{define "content"}}<h1>Monitor Detail</h1>{{end}}
+{{define "content"}}
+<div>
+  <div class="flex items-center justify-between mb-6">
+    <a href="/monitors" class="text-[14px] leading-[20px] font-medium text-[#64748B] hover:text-slate-800">&larr; Monitors</a>
+    <div class="flex items-center gap-3">
+      <a href="/monitors/{{.Monitor.ID}}/edit"
+        class="inline-flex items-center px-4 py-2 bg-white border border-[#DCE1E8] hover:bg-[#EEF1F5] text-[#64748B] hover:text-slate-800 text-[14px] leading-[20px] font-medium rounded-md">
+        Edit
+      </a>
+      <form action="/monitors/{{.Monitor.ID}}/delete" method="POST"
+        hx-delete="/monitors/{{.Monitor.ID}}" hx-target="body" hx-swap="innerHTML"
+        onsubmit="return confirm('Delete this monitor?');">
+        <button type="submit"
+          class="inline-flex items-center px-4 py-2 bg-white border border-[#DCE1E8] hover:bg-[#FEF2F2] hover:border-[#FCA5A5] text-[#EF4444] text-[14px] leading-[20px] font-medium rounded-md">
+          Delete
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="bg-white border border-[#DCE1E8] rounded-lg p-6 mb-6">
+    <div class="flex items-start justify-between gap-4">
+      <div class="min-w-0">
+        <div class="flex items-center gap-3">
+          {{if .Latest}}
+          <span class="w-3 h-3 rounded-full {{if eq .Latest.Status "up"}}bg-[#10B981]{{else}}bg-[#EF4444]{{end}}"></span>
+          {{else}}
+          <span class="w-3 h-3 rounded-full bg-[#A0AEC0]"></span>
+          {{end}}
+          <h1 class="text-[20px] leading-[28px] font-semibold text-slate-800 truncate">{{.Monitor.Name}}</h1>
+        </div>
+        <p class="text-[14px] leading-[20px] text-[#64748B] truncate mt-1">{{.Monitor.URL}}</p>
+      </div>
+      <div class="flex flex-col items-end gap-1 shrink-0 text-[12px] leading-[18px] text-[#64748B]">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-[12px] text-[12px] leading-[18px] font-medium bg-[#EEF1F5] text-[#64748B]">{{.Monitor.Type}}</span>
+        <span>{{if .Monitor.Enabled}}enabled{{else}}disabled{{end}}</span>
+      </div>
+    </div>
+
+    <div class="mt-5 pt-5 border-t border-[#DCE1E8] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-[14px] leading-[20px]">
+      <div>
+        <p class="text-[12px] leading-[18px] font-medium text-[#64748B]">Interval</p>
+        <p class="text-slate-800 mt-0.5">{{.Monitor.Interval}}s</p>
+      </div>
+      <div>
+        <p class="text-[12px] leading-[18px] font-medium text-[#64748B]">Timeout</p>
+        <p class="text-slate-800 mt-0.5">{{.Monitor.Timeout}}s</p>
+      </div>
+      <div>
+        <p class="text-[12px] leading-[18px] font-medium text-[#64748B]">Follow redirects</p>
+        <p class="text-slate-800 mt-0.5">{{if .Monitor.FollowRedirects}}Yes{{else}}No{{end}}</p>
+      </div>
+      <div>
+        <p class="text-[12px] leading-[18px] font-medium text-[#64748B]">Expected status</p>
+        <p class="text-slate-800 mt-0.5">{{if .Monitor.ExpectedStatusCode}}{{.Monitor.ExpectedStatusCode}}{{else}}—{{end}}</p>
+      </div>
+      <div>
+        <p class="text-[12px] leading-[18px] font-medium text-[#64748B]">Last checked</p>
+        <p class="text-slate-800 mt-0.5">{{if .Latest}}{{.Latest.Timestamp}}{{else}}Never{{end}}</p>
+      </div>
+      <div>
+        <p class="text-[12px] leading-[18px] font-medium text-[#64748B]">Last response</p>
+        <p class="text-slate-800 mt-0.5">{{if and .Latest .Latest.LatencyMs}}{{.Latest.LatencyMs}}ms{{else}}—{{end}}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white border border-[#DCE1E8] rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-[#DCE1E8]">
+      <h2 class="text-[16px] leading-[24px] font-medium text-slate-800">Recent probe results</h2>
+    </div>
+
+    {{if .Results}}
+    <table class="w-full text-left">
+      <thead>
+        <tr class="bg-[#EEF1F5] border-b border-[#DCE1E8]">
+          <th class="px-6 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Timestamp</th>
+          <th class="px-6 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Status</th>
+          <th class="px-6 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Status code</th>
+          <th class="px-6 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Response time</th>
+          <th class="px-6 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Results}}
+        <tr class="border-b border-[#DCE1E8] last:border-b-0">
+          <td class="px-6 py-3 text-[14px] leading-[20px] text-[#64748B]">{{.Timestamp}}</td>
+          <td class="px-6 py-3">
+            <span class="inline-flex items-center gap-2 text-[12px] leading-[18px] font-medium">
+              <span class="w-2.5 h-2.5 rounded-full {{if eq .Status "up"}}bg-[#10B981]{{else}}bg-[#EF4444]{{end}}"></span>
+              <span class="{{if eq .Status "up"}}text-[#10B981]{{else}}text-[#EF4444]{{end}}">{{.Status}}</span>
+            </span>
+          </td>
+          <td class="px-6 py-3 text-[14px] leading-[20px] text-slate-800">{{if .StatusCode}}{{.StatusCode}}{{else}}—{{end}}</td>
+          <td class="px-6 py-3 text-[14px] leading-[20px] text-[#64748B]">{{if .LatencyMs}}{{.LatencyMs}}ms{{else}}—{{end}}</td>
+          <td class="px-6 py-3 text-[14px] leading-[20px] text-[#EF4444] max-w-[360px] truncate">{{if .ErrorMsg}}{{.ErrorMsg}}{{else}}—{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="px-6 py-16 text-center">
+      <p class="text-[14px] leading-[20px] text-[#64748B]">No probe results yet. The first check runs shortly after the monitor is enabled.</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

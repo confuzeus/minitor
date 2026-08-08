@@ -82,19 +82,31 @@ func main() {
 		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
 	})
 
-	h := handlers.New(tmpl, db, &cfg)
-
 	sched := probe.NewScheduler(db)
 	alert := alerter.New(db, cfg.SMTP)
 	sched.SetNotifier(alert.Notify)
 	sched.Start()
 	defer sched.Stop()
 
+	h := handlers.New(tmpl, db, &cfg, sched)
+
 	router.Get("/", h.Dashboard)
 	router.Get("/api/monitors", h.MonitorCards)
 	router.Get("/login", h.LoginPage)
 	router.Post("/login", h.Login)
 	router.Post("/logout", h.Logout)
+
+	router.Get("/monitors", h.ListMonitors)
+	router.Get("/monitors/new", h.NewMonitor)
+	router.Post("/monitors", h.CreateMonitor)
+	router.Get("/monitors/{id}", h.MonitorDetail)
+	router.Get("/monitors/{id}/edit", h.EditMonitor)
+	router.Put("/monitors/{id}", h.UpdateMonitor)
+	router.Delete("/monitors/{id}", h.DeleteMonitor)
+
+	// No-JS fallbacks for htmx forms, which can only issue POST natively.
+	router.Post("/monitors/{id}", h.UpdateMonitor)
+	router.Post("/monitors/{id}/delete", h.DeleteMonitor)
 
 	slog.Info("minitor starting", "port", cfg.Port, "data_dir", cfg.DataDir, "db", dbPath)
 	slog.Info("minitor listening", "addr", ":"+cfg.Port)

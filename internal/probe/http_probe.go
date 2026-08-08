@@ -61,7 +61,11 @@ func RunHTTPProbe(monitor models.Monitor) models.ProbeResult {
 	result.StatusCode = &statusCode
 	result.LatencyMs = &latencyMs
 
-	if statusCode >= 200 && statusCode < 300 {
+	up := statusCode >= 200 && statusCode < 300
+	if expected := monitor.ExpectedStatusCode; expected != nil {
+		up = statusCode == *expected
+	}
+	if up {
 		result.Status = models.StatusUp
 	} else {
 		result.Status = models.StatusDown

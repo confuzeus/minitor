@@ -1,1 +1,77 @@
-{{define "content"}}<h1>Monitor List</h1>{{end}}
+{{define "content"}}
+<div>
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-[20px] leading-[28px] font-semibold text-slate-800">Monitors</h1>
+    <a href="/monitors/new"
+      class="inline-flex items-center px-4 py-2 bg-[#FF6B57] hover:bg-[#E55A48] text-white text-[14px] leading-[20px] font-medium rounded-md">
+      Add Monitor
+    </a>
+  </div>
+
+  {{if .Monitors}}
+  <div class="bg-white border border-[#DCE1E8] rounded-lg overflow-hidden">
+    <table class="w-full text-left">
+      <thead>
+        <tr class="bg-[#EEF1F5] border-b border-[#DCE1E8]">
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Name</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">URL</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Type</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Status</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Expected</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Last checked</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Response</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Monitors}}
+        <tr class="border-b border-[#DCE1E8] last:border-b-0 hover:bg-[#F8F9FB]">
+          <td class="px-4 py-3">
+            <a href="/monitors/{{.Monitor.ID}}" class="text-[14px] leading-[20px] font-medium text-slate-800 hover:text-[#FF6B57]">{{.Monitor.Name}}</a>
+          </td>
+          <td class="px-4 py-3 text-[14px] leading-[20px] text-[#64748B] max-w-[280px] truncate">{{.Monitor.URL}}</td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-[12px] text-[12px] leading-[18px] font-medium bg-[#EEF1F5] text-[#64748B]">{{.Monitor.Type}}</span>
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center gap-2 text-[12px] leading-[18px] font-medium">
+              {{if .LatestResult}}
+              <span class="w-2.5 h-2.5 rounded-full {{if eq .LatestResult.Status "up"}}bg-[#10B981]{{else}}bg-[#EF4444]{{end}}"></span>
+              <span class="{{if eq .LatestResult.Status "up"}}text-[#10B981]{{else}}text-[#EF4444]{{end}}">{{.LatestResult.Status}}</span>
+              {{else}}
+              <span class="w-2.5 h-2.5 rounded-full bg-[#A0AEC0]"></span>
+              <span class="text-[#A0AEC0]">never checked</span>
+              {{end}}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-[14px] leading-[20px] text-[#64748B]">
+            {{if .Monitor.ExpectedStatusCode}}{{.Monitor.ExpectedStatusCode}}{{else}}—{{end}}
+          </td>
+          <td class="px-4 py-3 text-[14px] leading-[20px] text-[#64748B]">{{if .LatestResult}}{{.LatestResult.Timestamp}}{{else}}—{{end}}</td>
+          <td class="px-4 py-3 text-[14px] leading-[20px] text-[#64748B]">{{if and .LatestResult .LatestResult.LatencyMs}}{{.LatestResult.LatencyMs}}ms{{else}}—{{end}}</td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-3">
+              <a href="/monitors/{{.Monitor.ID}}/edit" class="text-[14px] leading-[20px] font-medium text-[#64748B] hover:text-slate-800">Edit</a>
+              <form action="/monitors/{{.Monitor.ID}}/delete" method="POST"
+                onsubmit="event.preventDefault(); if (!confirm('Delete this monitor?')) return false; fetch(this.action, {method: 'DELETE'}).then(function () { window.location.href = '/monitors'; });">
+                <button type="submit" class="text-[14px] leading-[20px] font-medium text-[#EF4444] hover:text-[#B91C1C]">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="bg-white border border-dashed border-[#DCE1E8] rounded-lg p-16 text-center">
+    <h2 class="text-[16px] leading-[24px] font-medium text-slate-800">No monitors yet</h2>
+    <p class="text-[14px] leading-[20px] text-slate-500 mt-2">Add your first monitor to start tracking uptime and response times.</p>
+    <a href="/monitors/new"
+      class="inline-flex items-center px-4 py-2 mt-6 bg-[#FF6B57] hover:bg-[#E55A48] text-white text-[14px] leading-[20px] font-medium rounded-md">
+      Add Monitor
+    </a>
+  </div>
+  {{end}}
+</div>
+{{end}}

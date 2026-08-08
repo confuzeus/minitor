@@ -19,15 +19,16 @@ RUN go mod download
 COPY . .
 COPY --from=build-css /src/static/dist ./static/dist
 RUN CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o /minitor . \
-    && mkdir -p /data \
-    && chown -R 65532:65532 /data
+    && mkdir -p /data
 
 # Stage 3: Minimal runtime image with a non-root user, entrypoint, and su-exec
 # (gosu is not packaged on Alpine; su-exec is its drop-in equivalent).
 FROM alpine:3.21
 
+# UID 65532 matches the previous distroless nonroot image for continuity of
+# host bind-mount ownership.
 RUN apk add --no-cache ca-certificates tzdata su-exec \
-    && adduser -D -H -s /sbin/nologin minitor
+    && adduser -D -H -u 65532 -s /sbin/nologin minitor
 
 COPY --from=build-go /minitor /minitor
 # Pre-create the data directory owned by the app user. This also seeds fresh

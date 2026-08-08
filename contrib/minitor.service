@@ -1,0 +1,38 @@
+[Unit]
+Description=Minitor uptime monitoring service
+Documentation=https://github.com/confuzeus/minitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Install the binary as /usr/local/bin/minitor or adjust this path.
+ExecStart=/usr/local/bin/minitor -data-dir /var/lib/minitor
+
+# Optional config: copy contrib/minitor.env.example to /etc/minitor/minitor.env
+# and uncomment the line below to load PORT, ADMIN_PASSWORD, SECRET_KEY, SMTP_*, etc.
+# EnvironmentFile=-/etc/minitor/minitor.env
+
+Restart=always
+RestartSec=5
+
+# Run as an ephemeral system user; /var/lib/minitor is created and owned by it.
+DynamicUser=yes
+StateDirectory=minitor
+
+# Sandboxing / hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=multi-user.target

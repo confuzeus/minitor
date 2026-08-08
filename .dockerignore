@@ -1,0 +1,34 @@
+# VCS
+.git
+.gitignore
+
+# Go
+minitor
+*.exe
+*.test
+go.work
+go.work.sum
+
+# Node / Tailwind
+node_modules
+static/dist
+
+# Runtime data
+data
+
+# Environment
+.env
+.env.*
+
+# Editors / OS
+.idea
+.vscode
+.DS_Store
+
+# Agents / docs (not needed for build)
+.agents
+
+# Docker artifacts
+Dockerfile
+.dockerignore
+docker-compose.yml

@@ -49,6 +49,32 @@ func GetAlertConfigs(db *sql.DB, monitorID int64) ([]AlertConfig, error) {
 	return configs, nil
 }
 
+func GetAllMonitorAlerts(db *sql.DB) ([]MonitorAlert, error) {
+	query := `SELECT monitor_id, recipient_id, on_down, on_recovery, consecutive_failures
+		FROM monitor_alerts
+		ORDER BY monitor_id`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("list all monitor alerts: %w", err)
+	}
+	defer rows.Close()
+
+	alerts := []MonitorAlert{}
+	for rows.Next() {
+		var a MonitorAlert
+		err := rows.Scan(&a.MonitorID, &a.RecipientID, &a.OnDown, &a.OnRecovery,
+			&a.ConsecutiveFailures)
+		if err != nil {
+			return nil, fmt.Errorf("scan monitor alert: %w", err)
+		}
+		alerts = append(alerts, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list all monitor alerts: %w", err)
+	}
+	return alerts, nil
+}
+
 func CreateMonitorAlert(db *sql.DB, ma *MonitorAlert) error {
 	query := `INSERT INTO monitor_alerts (monitor_id, recipient_id, on_down, on_recovery, consecutive_failures)
 		VALUES (?, ?, ?, ?, ?)

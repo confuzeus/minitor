@@ -108,6 +108,12 @@ func main() {
 	router.Post("/monitors/{id}", h.UpdateMonitor)
 	router.Post("/monitors/{id}/delete", h.DeleteMonitor)
 
+	router.Get("/alerts", h.ListAlerts)
+	router.Post("/alerts", h.CreateAlertRecipient)
+	router.Delete("/alerts/{id}", h.DeleteAlertRecipient)
+	router.Delete("/alerts/{id}/delete", h.DeleteAlertRecipient)
+	router.Post("/alerts/{id}/delete", h.DeleteAlertRecipient)
+
 	slog.Info("minitor starting", "port", cfg.Port, "data_dir", cfg.DataDir, "db", dbPath)
 	slog.Info("minitor listening", "addr", ":"+cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil && !errors.Is(err, http.ErrServerClosed) {

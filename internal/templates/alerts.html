@@ -1,1 +1,135 @@
-{{define "content"}}<h1>Alerts</h1>{{end}}
+{{define "content"}}
+<div>
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-[20px] leading-[28px] font-semibold text-slate-800">Alert Recipients</h1>
+    <a href="#add-recipient"
+      class="inline-flex items-center px-4 py-2 bg-[#FF6B57] hover:bg-[#E55A48] text-white text-[14px] leading-[20px] font-medium rounded-md">
+      Add Recipient
+    </a>
+  </div>
+
+  {{if .Error}}
+  <div class="mb-6 bg-[#FEF2F2] border border-[#FCA5A5] text-[#B91C1C] rounded-md px-4 py-3 text-[14px] leading-[20px]">
+    {{.Error}}
+  </div>
+  {{end}}
+
+  {{if .Recipients}}
+  <div class="bg-white border border-[#DCE1E8] rounded-lg overflow-hidden">
+    <table class="w-full text-left">
+      <thead>
+        <tr class="bg-[#EEF1F5] border-b border-[#DCE1E8]">
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Name</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Email</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Monitors</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Created</th>
+          <th class="px-4 py-3 text-[12px] leading-[18px] font-medium text-[#64748B]">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Recipients}}
+        <tr class="border-b border-[#DCE1E8] last:border-b-0 hover:bg-[#F8F9FB]">
+          <td class="px-4 py-3 text-[14px] leading-[20px] font-medium text-slate-800">{{.Recipient.Name}}</td>
+          <td class="px-4 py-3 text-[14px] leading-[20px] text-[#64748B]">{{.Recipient.Email}}</td>
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap items-center gap-1.5">
+              {{range .AssignedMonitors}}
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[12px] text-[12px] leading-[18px] font-medium bg-[#EEF1F5] text-[#64748B]">
+                {{.Monitor.Name}}
+                {{if .OnDown}}<span class="w-1.5 h-1.5 rounded-full bg-[#EF4444]" title="Alerts on down"></span>{{end}}
+                {{if .OnRecovery}}<span class="w-1.5 h-1.5 rounded-full bg-[#10B981]" title="Alerts on recovery"></span>{{end}}
+              </span>
+              {{else}}
+              <span class="text-[#A0AEC0]">—</span>
+              {{end}}
+            </div>
+          </td>
+          <td class="px-4 py-3 text-[14px] leading-[20px] text-[#64748B]">{{.Recipient.CreatedAt}}</td>
+          <td class="px-4 py-3">
+            <form action="/alerts/{{.Recipient.ID}}/delete" method="POST"
+              onsubmit="event.preventDefault(); if (!confirm('Delete this recipient?')) return false; fetch(this.action, {method: 'DELETE'}).then(function () { window.location.href = '/alerts'; });">
+              <button type="submit" class="text-[14px] leading-[20px] font-medium text-[#EF4444] hover:text-[#B91C1C]">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="bg-white border border-dashed border-[#DCE1E8] rounded-lg p-16 text-center">
+    <h2 class="text-[16px] leading-[24px] font-medium text-slate-800">No recipients yet</h2>
+    <p class="text-[14px] leading-[20px] text-slate-500 mt-2">Add a recipient to receive email alerts when a monitor goes down or recovers.</p>
+  </div>
+  {{end}}
+
+  <div id="add-recipient" class="max-w-[560px] mt-8 scroll-mt-24">
+    <h2 class="text-[16px] leading-[24px] font-semibold text-slate-800 mb-4">Add Recipient</h2>
+
+    {{$form := .Form}}
+    <form method="POST" action="/alerts"
+      class="bg-white border border-[#DCE1E8] rounded-lg p-6 space-y-6">
+      <div>
+        <label for="name" class="block text-[14px] leading-[20px] font-medium text-slate-800 mb-1">Name</label>
+        <input id="name" name="name" type="text" required value="{{$form.Name}}"
+          class="w-full px-3 py-2 border border-[#DCE1E8] rounded-md text-[14px] leading-[20px] text-slate-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-[#FF6B57]/40 focus:border-[#FF6B57]">
+      </div>
+
+      <div>
+        <label for="email" class="block text-[14px] leading-[20px] font-medium text-slate-800 mb-1">Email</label>
+        <input id="email" name="email" type="email" required placeholder="alerts@example.com" value="{{$form.Email}}"
+          class="w-full px-3 py-2 border border-[#DCE1E8] rounded-md text-[14px] leading-[20px] text-slate-800 bg-white focus:outline-none focus:ring-[3px] focus:ring-[#FF6B57]/40 focus:border-[#FF6B57]">
+      </div>
+
+      <div>
+        <p class="text-[14px] leading-[20px] font-medium text-slate-800 mb-2">Assign to monitors</p>
+        {{if .Monitors}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {{range .Monitors}}
+          <label class="flex items-center gap-2.5 px-3 py-2 border border-[#DCE1E8] rounded-md cursor-pointer hover:bg-[#F8F9FB]">
+            <input type="checkbox" name="monitor_ids" value="{{.ID}}"
+              class="w-4 h-4 rounded border-[#DCE1E8] text-[#FF6B57] focus:ring-[#FF6B57]/40"
+              {{if index $form.Selected .ID}}checked{{end}}>
+            <span class="text-[14px] leading-[20px] text-slate-800 truncate">{{.Name}}</span>
+          </label>
+          {{end}}
+        </div>
+        {{else}}
+        <p class="text-[12px] leading-[18px] text-[#A0AEC0]">No monitors yet. <a href="/monitors/new" class="text-[#FF6B57] hover:text-[#E55A48]">Create one</a> to assign alerts.</p>
+        {{end}}
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[14px] leading-[20px] font-medium text-slate-800">Alert on down</p>
+            <p class="text-[12px] leading-[18px] text-[#64748B]">Email when a monitor goes down.</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="on_down" class="sr-only peer" {{if $form.OnDown}}checked{{end}}>
+            <div class="w-10 h-6 bg-[#DCE1E8] peer-focus:ring-[3px] peer-focus:ring-[#FF6B57]/40 rounded-full peer-checked:bg-[#10B981] transition-colors"></div>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[14px] leading-[20px] font-medium text-slate-800">Alert on recovery</p>
+            <p class="text-[12px] leading-[18px] text-[#64748B]">Email when a monitor comes back up.</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="on_recovery" class="sr-only peer" {{if $form.OnRecovery}}checked{{end}}>
+            <div class="w-10 h-6 bg-[#DCE1E8] peer-focus:ring-[3px] peer-focus:ring-[#FF6B57]/40 rounded-full peer-checked:bg-[#10B981] transition-colors"></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button type="submit"
+          class="px-4 py-2 bg-[#FF6B57] hover:bg-[#E55A48] text-white text-[14px] leading-[20px] font-medium rounded-md">
+          Add Recipient
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

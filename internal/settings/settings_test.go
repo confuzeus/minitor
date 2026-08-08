@@ -17,6 +17,7 @@ var allEnvKeys = []string{
 	"SMTP_PASSWORD",
 	"SMTP_FROM",
 	"RETENTION_DAYS",
+	"SECURE_COOKIES",
 }
 
 func clearEnv(t *testing.T, vars map[string]string) {
@@ -57,6 +58,9 @@ func TestDefaults(t *testing.T) {
 	if len(s.SecretKey) != 64 {
 		t.Errorf("SecretKey length = %d, want 64 (32 random bytes hex-encoded)", len(s.SecretKey))
 	}
+	if s.SecureCookies {
+		t.Error("SecureCookies = true, want false by default")
+	}
 }
 
 func TestEnvOverrides(t *testing.T) {
@@ -86,6 +90,30 @@ func TestEnvOverrides(t *testing.T) {
 	}
 	if s.RetentionDays != 7 {
 		t.Errorf("RetentionDays = %d, want 7", s.RetentionDays)
+	}
+}
+
+func TestSecureCookiesTrue(t *testing.T) {
+	clearEnv(t, map[string]string{"SECURE_COOKIES": "true"})
+
+	s, err := Parse()
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+	if !s.SecureCookies {
+		t.Error("SecureCookies = false, want true")
+	}
+}
+
+func TestSecureCookiesInvalid(t *testing.T) {
+	clearEnv(t, map[string]string{"SECURE_COOKIES": "yes"})
+
+	_, err := Parse()
+	if err == nil {
+		t.Fatal("Parse returned nil error, want error for invalid SECURE_COOKIES")
+	}
+	if !strings.Contains(err.Error(), "SECURE_COOKIES") {
+		t.Errorf("error %q does not mention SECURE_COOKIES", err)
 	}
 }
 

@@ -22,6 +22,7 @@ type Settings struct {
 	DataDir       string
 	AdminPassword string
 	SecretKey     string
+	SecureCookies bool
 	SMTP          SMTPConfig
 	RetentionDays int
 }
@@ -56,6 +57,14 @@ func Parse() (Settings, error) {
 			return Settings{}, fmt.Errorf("RETENTION_DAYS must be a number, got %q", v)
 		}
 		s.RetentionDays = n
+	}
+
+	if v := os.Getenv("SECURE_COOKIES"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return Settings{}, fmt.Errorf("SECURE_COOKIES must be true or false, got %q", v)
+		}
+		s.SecureCookies = b
 	}
 
 	if err := s.Validate(); err != nil {

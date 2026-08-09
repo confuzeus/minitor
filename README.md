@@ -66,18 +66,10 @@ For a full list of variables, see the [environment variable reference](#environm
 
 The repository includes a multi-stage `Dockerfile` that produces a minimal distroless image running as a non-root user, and a `docker-compose.yml` for one-command setup.
 
-```bash
-git clone https://github.com/confuzeus/minitor.git
-cd minitor
-docker compose up -d
-```
-
-Minitor is now available at http://localhost:8080. Edit `environment:` in `docker-compose.yml` to enable authentication, SMTP, or other options. Data persists in the `minitor-data` Docker volume at `/data`.
-
-To build and tag a specific version:
+Pre-built images are published on Docker Hub at `dockershepherd/minitor`. Pull the latest release with:
 
 ```bash
-docker build --build-arg VERSION=0.1.0 -t minitor:0.1.0 .
+docker pull dockershepherd/minitor:latest
 ```
 
 To run the image directly:
@@ -87,7 +79,15 @@ docker run -d --name minitor \
   -p 8080:8080 \
   -v minitor-data:/data \
   -e DATA_DIR=/data \
-  minitor:local
+  dockershepherd/minitor:latest
+```
+
+Minitor is now available at http://localhost:8080. Edit `environment:` in `docker-compose.yml` to enable authentication, SMTP, or other options. Data persists in the `minitor-data` Docker volume at `/data`.
+
+To instead build and tag a specific version locally from source:
+
+```bash
+docker build --build-arg VERSION=0.1.0 -t minitor:0.1.0 .
 ```
 
 ## systemd

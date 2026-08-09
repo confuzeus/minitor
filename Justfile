@@ -1,6 +1,7 @@
 set shell := ["bash", "-uc"]
 
 VERSION := `git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo "dev"`
+DEVVERSION := `git rev-parse --short HEAD`
 
 default:
     @just --list
@@ -16,10 +17,9 @@ build:
 
 # Build the binary and Docker image using the git commit hash as the version (for development)
 dev-build:
-    DEVVERSION="$$(git rev-parse --short HEAD)" && \
     npm run build:css && \
-    go build -ldflags "-s -w -X main.version=$$DEVVERSION" -o minitor . && \
-    docker build --build-arg VERSION=$$DEVVERSION -t dockershepherd/minitor:$$DEVVERSION .
+    go build -ldflags "-s -w -X main.version={{ DEVVERSION }}" -o minitor . && \
+    docker build --build-arg VERSION={{ DEVVERSION }} -t dockershepherd/minitor:{{ DEVVERSION }} .
 
 # Build the Docker image tagged with the current version
 docker-build:
@@ -30,7 +30,7 @@ docker-push:
 
 # Push the dev Docker image tagged with the git commit hash (for development)
 docker-push-dev:
-    docker push dockershepherd/minitor:$$(git rev-parse --short HEAD)
+    docker push dockershepherd/minitor:{{ DEVVERSION }}
 
 # Run all Go tests
 test:

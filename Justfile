@@ -23,10 +23,11 @@ dev-build:
 
 # Build the Docker image tagged with the current version
 docker-build:
-    docker build --build-arg VERSION={{ VERSION }} -t dockershepherd/minitor:{{ VERSION }} .
+    docker build --build-arg VERSION={{ VERSION }} -t dockershepherd/minitor:{{ VERSION }} -t dockershepherd/minitor:latest .
 
 docker-push:
     docker push dockershepherd/minitor:{{ VERSION }}
+    docker push dockershepherd/minitor:latest
 
 # Push the dev Docker image tagged with the git commit hash (for development)
 docker-push-dev:

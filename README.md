@@ -4,9 +4,29 @@ Minitor is a self-hosted, single-binary monitoring tool for small deployments. I
 
 ## Screenshots
 
-<!-- TODO: add screenshots of the dashboard, monitor detail page, and alert configuration -->
+### Dashboard
 
-The dashboard shows every monitor as a status card with a live status indicator (green when up, pulsing red when down), target URL, last response time, and last checked timestamp. The monitor detail page lists recent probe results in a table, and the alerts page links recipients to monitors with per-monitor alert settings.
+An empty dashboard prompts you to add your first monitor:
+
+![Empty dashboard](screenshots/minitor-dashboard-empty.png)
+
+The add-monitor form:
+
+![Add monitor](screenshots/minitor-add-monitor.png)
+
+Added monitors show as status cards with a live status indicator (green when up, pulsing red when down), target URL, last response time, and last checked timestamp:
+
+![Monitor list](screenshots/minitor-monitors.png)
+
+### Alert recipients
+
+The recipients page starts empty next to the add form:
+
+![Empty recipients](screenshots/minitor-recipients.png)
+
+After adding, recipients are listed with their linked monitors:
+
+![Recipients](screenshots/minitor-recipients-added.png)
 
 ## Features
 

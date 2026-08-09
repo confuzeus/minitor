@@ -76,6 +76,91 @@ func (h *Handler) CreateAlertRecipient(w http.ResponseWriter, r *http.Request) {
 	h.redirect(w, r, "/alerts")
 }
 
+// EditRecipient renders the edit form pre-populated with the recipient's
+// current values and monitor assignments.
+func (h *Handler) EditRecipient(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid recipient id", http.StatusBadRequest)
+		return
+	}
+
+	rec, err := models.GetRecipientByID(h.DB, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if rec == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	alerts, err := models.GetAlertsByRecipientID(h.DB, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	form := alertFormState{
+		Name:       rec.Name,
+		Email:      rec.Email,
+		OnDown:     true,
+		OnRecovery: true,
+		Selected:   make(map[int64]bool),
+	}
+	for _, a := range alerts {
+		form.Selected[a.MonitorID] = true
+	}
+	if len(alerts) > 0 {
+		form.OnDown = alerts[0].OnDown
+		form.OnRecovery = alerts[0].OnRecovery
+	}
+
+	h.renderRecipientForm(w, r, id, form, "")
+}
+
+// UpdateRecipient parses and validates the submitted form, updates the
+// recipient's details and monitor assignments, and redirects back to the
+// alerts page.
+func (h *Handler) UpdateRecipient(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid recipient id", http.StatusBadRequest)
+		return
+	}
+
+	form, err := parseAlertForm(r)
+	if err != nil {
+		h.renderRecipientForm(w, r, id, form, err.Error())
+		return
+	}
+
+	recipient := models.AlertRecipient{
+		ID:    id,
+		Name:  form.Name,
+		Email: form.Email,
+	}
+	alerts := make([]models.MonitorAlert, 0, len(form.Selected))
+	for mid := range form.Selected {
+		alerts = append(alerts, models.MonitorAlert{
+			MonitorID:           mid,
+			OnDown:              form.OnDown,
+			OnRecovery:          form.OnRecovery,
+			ConsecutiveFailures: defaultConsecutiveFailures,
+		})
+	}
+	if err := models.UpdateRecipientWithAlerts(h.DB, &recipient, alerts); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.redirect(w, r, "/alerts")
+}
+
 // DeleteAlertRecipient removes a recipient. Its monitor associations are
 // cleaned up by the foreign key cascade.
 func (h *Handler) DeleteAlertRecipient(w http.ResponseWriter, r *http.Request) {
@@ -183,12 +268,38 @@ func (h *Handler) renderAlerts(w http.ResponseWriter, r *http.Request, form aler
 		"ShowNav":        true,
 		"Authenticated":  h.Settings.AdminPassword != "",
 		"SMTPConfigured": h.Settings.SMTP.Host != "",
+		"IsNew":          true,
 		"Recipients":     cards,
 		"Monitors":       monitors,
 		"Form":           form,
 		"Error":          errMsg,
 	}
 	if err := h.Templates.Render(w, "alerts", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// renderRecipientForm renders the standalone edit-recipient form page.
+func (h *Handler) renderRecipientForm(w http.ResponseWriter, r *http.Request, id int64, form alertFormState, errMsg string) {
+	monitors, err := models.ListMonitors(h.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]any{
+		"Title":          "Edit Recipient",
+		"CurrentPage":    "alerts",
+		"ShowNav":        true,
+		"Authenticated":  h.Settings.AdminPassword != "",
+		"SMTPConfigured": h.Settings.SMTP.Host != "",
+		"IsNew":          false,
+		"RecipientID":    id,
+		"Monitors":       monitors,
+		"Form":           form,
+		"Error":          errMsg,
+	}
+	if err := h.Templates.Render(w, "alerts_edit", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

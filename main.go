@@ -153,6 +153,9 @@ func newRouter(h *handlers.Handler, cfg *settings.Settings, staticHandler http.H
 
 		r.Get("/alerts", h.ListAlerts)
 		r.Post("/alerts", h.CreateAlertRecipient)
+		r.Get("/alerts/{id}/edit", h.EditRecipient)
+		r.Put("/alerts/{id}", h.UpdateRecipient)
+		r.Post("/alerts/{id}", h.UpdateRecipient)
 		r.Delete("/alerts/{id}", h.DeleteAlertRecipient)
 		r.Delete("/alerts/{id}/delete", h.DeleteAlertRecipient)
 		r.Post("/alerts/{id}/delete", h.DeleteAlertRecipient)

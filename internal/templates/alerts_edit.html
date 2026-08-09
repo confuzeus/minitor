@@ -1,0 +1,16 @@
+{{define "content"}}
+<div class="max-w-[560px]">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-heading font-semibold text-ink">Edit Recipient</h1>
+    <a href="/alerts" class="text-body font-medium text-ink-secondary hover:text-ink">Cancel</a>
+  </div>
+
+  {{if .Error}}
+  <div class="mb-6 bg-danger-tint border border-danger/40 text-danger-dark rounded-md px-4 py-3 text-body">
+    {{.Error}}
+  </div>
+  {{end}}
+
+  {{template "alerts_form" .}}
+</div>
+{{end}}

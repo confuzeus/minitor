@@ -13,6 +13,10 @@ const (
 	baseFile    = "base.html"
 )
 
+// sharedPartials are parsed into every page so they can be referenced with
+// {{template}}.
+var sharedPartials = []string{"alerts_form.html"}
+
 type Templates struct {
 	pages map[string]*template.Template
 }
@@ -31,11 +35,12 @@ func New(assets fs.FS) (*Templates, error) {
 	pages := make(map[string]*template.Template)
 	for _, entry := range entries {
 		name := entry.Name()
-		if entry.IsDir() || !strings.HasSuffix(name, ".html") || name == baseFile {
+		if entry.IsDir() || !strings.HasSuffix(name, ".html") || name == baseFile || contains(sharedPartials, name) {
 			continue
 		}
 
-		tmpl, err := template.New(name).ParseFS(dir, baseFile, name)
+		files := append([]string{baseFile, name}, sharedPartials...)
+		tmpl, err := template.New(name).ParseFS(dir, files...)
 		if err != nil {
 			return nil, fmt.Errorf("parse %s: %w", name, err)
 		}
@@ -44,6 +49,15 @@ func New(assets fs.FS) (*Templates, error) {
 	}
 
 	return &Templates{pages: pages}, nil
+}
+
+func contains(list []string, s string) bool {
+	for _, item := range list {
+		if item == s {
+			return true
+		}
+	}
+	return false
 }
 
 func (t *Templates) Render(w io.Writer, page string, data any) error {

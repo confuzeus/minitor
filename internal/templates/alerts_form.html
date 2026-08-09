@@ -1,0 +1,66 @@
+{{define "alerts_form"}}
+{{$form := .Form}}
+<form method="POST" action="{{if .IsNew}}/alerts{{else}}/alerts/{{.RecipientID}}{{end}}"
+  class="bg-surface border border-border rounded-lg p-6 space-y-6">
+  <div>
+    <label for="name" class="block text-body font-medium text-ink mb-1">Name</label>
+    <input id="name" name="name" type="text" required value="{{$form.Name}}"
+      class="w-full px-3 py-2 border border-border rounded-md text-body text-ink bg-surface focus:outline-none focus:ring-[3px] focus:ring-brand/40 focus:border-brand">
+  </div>
+
+  <div>
+    <label for="email" class="block text-body font-medium text-ink mb-1">Email</label>
+    <input id="email" name="email" type="email" required placeholder="alerts@example.com" value="{{$form.Email}}"
+      class="w-full px-3 py-2 border border-border rounded-md text-body text-ink bg-surface focus:outline-none focus:ring-[3px] focus:ring-brand/40 focus:border-brand">
+  </div>
+
+  <div>
+    <p class="text-body font-medium text-ink mb-2">Assign to monitors</p>
+    {{if .Monitors}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {{range .Monitors}}
+      <label class="flex items-center gap-2.5 px-3 py-2 border border-border rounded-md cursor-pointer hover:bg-page">
+        <input type="checkbox" name="monitor_ids" value="{{.ID}}"
+          class="w-4 h-4 rounded border-border text-brand focus:ring-brand/40"
+          {{if index $form.Selected .ID}}checked{{end}}>
+        <span class="text-body text-ink truncate">{{.Name}}</span>
+      </label>
+      {{end}}
+    </div>
+    {{else}}
+    <p class="text-small text-ink-muted">No monitors yet. <a href="/monitors/new" class="text-brand hover:text-brand-hover">Create one</a> to assign alerts.</p>
+    {{end}}
+  </div>
+
+  <div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-body font-medium text-ink">Alert on down</p>
+        <p class="text-small text-ink-secondary">Email when a monitor goes down.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" name="on_down" class="sr-only peer" {{if $form.OnDown}}checked{{end}}>
+        <div class="w-10 h-6 bg-border peer-focus:ring-[3px] peer-focus:ring-brand/40 rounded-full peer-checked:bg-success transition-colors"></div>
+      </label>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-body font-medium text-ink">Alert on recovery</p>
+        <p class="text-small text-ink-secondary">Email when a monitor comes back up.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" name="on_recovery" class="sr-only peer" {{if $form.OnRecovery}}checked{{end}}>
+        <div class="w-10 h-6 bg-border peer-focus:ring-[3px] peer-focus:ring-brand/40 rounded-full peer-checked:bg-success transition-colors"></div>
+      </label>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-end gap-3 pt-2">
+    <button type="submit"
+      class="px-4 py-2 bg-brand hover:bg-brand-hover text-white text-body font-medium rounded-md">
+      {{if .IsNew}}Add Recipient{{else}}Save Changes{{end}}
+    </button>
+  </div>
+</form>
+{{end}}

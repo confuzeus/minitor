@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 type AlertRecipient struct {
@@ -67,6 +68,103 @@ func CreateRecipientWithAlerts(db *sql.DB, r *AlertRecipient, alerts []MonitorAl
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("create alert recipient: %w", err)
+	}
+	return nil
+}
+
+func GetRecipientByID(db *sql.DB, id int64) (*AlertRecipient, error) {
+	query := "SELECT " + alertRecipientColumns + " FROM alert_recipients WHERE id = ?"
+	r, err := scanAlertRecipient(db.QueryRow(query, id))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get alert recipient %d: %w", id, err)
+	}
+	return r, nil
+}
+
+func GetAlertsByRecipientID(db *sql.DB, recipientID int64) ([]MonitorAlert, error) {
+	query := `SELECT monitor_id, recipient_id, on_down, on_recovery, consecutive_failures
+		FROM monitor_alerts
+		WHERE recipient_id = ?
+		ORDER BY monitor_id`
+	rows, err := db.Query(query, recipientID)
+	if err != nil {
+		return nil, fmt.Errorf("get alerts for recipient %d: %w", recipientID, err)
+	}
+	defer rows.Close()
+
+	alerts := []MonitorAlert{}
+	for rows.Next() {
+		var a MonitorAlert
+		err := rows.Scan(&a.MonitorID, &a.RecipientID, &a.OnDown, &a.OnRecovery,
+			&a.ConsecutiveFailures)
+		if err != nil {
+			return nil, fmt.Errorf("scan monitor alert: %w", err)
+		}
+		alerts = append(alerts, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("get alerts for recipient %d: %w", recipientID, err)
+	}
+	return alerts, nil
+}
+
+// UpdateRecipientWithAlerts updates a recipient's details and replaces its
+// monitor associations in a single transaction so a failure on any step rolls
+// back the whole update.
+func UpdateRecipientWithAlerts(db *sql.DB, r *AlertRecipient, alerts []MonitorAlert) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("update alert recipient: %w", err)
+	}
+	defer tx.Rollback()
+
+	query := `UPDATE alert_recipients SET name = ?, email = ? WHERE id = ? RETURNING id`
+	if err := tx.QueryRow(query, r.Name, r.Email, r.ID).Scan(&r.ID); err != nil {
+		if err == sql.ErrNoRows {
+			return sql.ErrNoRows
+		}
+		return fmt.Errorf("update alert recipient: %w", err)
+	}
+
+	// Remove associations that are no longer selected.
+	if len(alerts) > 0 {
+		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(alerts)), ",")
+		args := make([]any, 0, len(alerts)+1)
+		args = append(args, r.ID)
+		for _, a := range alerts {
+			args = append(args, a.MonitorID)
+		}
+		query := "DELETE FROM monitor_alerts WHERE recipient_id = ? AND monitor_id NOT IN (" + placeholders + ")"
+		if _, err := tx.Exec(query, args...); err != nil {
+			return fmt.Errorf("replace monitor alerts: %w", err)
+		}
+	} else {
+		if _, err := tx.Exec("DELETE FROM monitor_alerts WHERE recipient_id = ?", r.ID); err != nil {
+			return fmt.Errorf("replace monitor alerts: %w", err)
+		}
+	}
+
+	// Upsert the selected associations. On conflict the on_down/on_recovery
+	// settings are updated from the form, while an existing consecutive_failures
+	// threshold is preserved since it is not part of the form.
+	for _, a := range alerts {
+		a.RecipientID = r.ID
+		query := `INSERT INTO monitor_alerts (monitor_id, recipient_id, on_down, on_recovery, consecutive_failures)
+			VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT(monitor_id, recipient_id) DO UPDATE SET
+				on_down = excluded.on_down,
+				on_recovery = excluded.on_recovery`
+		if _, err := tx.Exec(query, a.MonitorID, a.RecipientID, a.OnDown, a.OnRecovery,
+			a.ConsecutiveFailures); err != nil {
+			return fmt.Errorf("upsert monitor alert: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("update alert recipient: %w", err)
 	}
 	return nil
 }

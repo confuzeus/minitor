@@ -240,3 +240,7 @@ contrib/
 | `--db-path`  | `<data-dir>/minitor.db` | Path to the SQLite database      |
 | `--migrate`  | —                       | Run database migrations and exit |
 | `--version`  | —                       | Print version and exit           |
+
+## License
+
+[AGPLv3](LICENSE.md)

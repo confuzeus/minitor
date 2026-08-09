@@ -1,6 +1,6 @@
 # Minitor
 
-Minitor is a self-hosted, single-binary monitoring tool for solo SaaS founders. It performs scheduled HTTP and ping health checks against configured endpoints, stores results in SQLite, and sends email alerts via SMTP when monitors go down or recover. The entire application ships as a statically compiled Go binary with zero runtime dependencies beyond the binary itself and a writable directory for the database.
+Minitor is a self-hosted, single-binary monitoring tool for small deployments. It performs scheduled HTTP and ping health checks against configured endpoints, stores results in SQLite, and sends email alerts via SMTP when monitors go down or recover. The entire application ships as a statically compiled Go binary with zero runtime dependencies beyond the binary itself and a writable directory for the database.
 
 ## Screenshots
 
@@ -11,7 +11,7 @@ The dashboard shows every monitor as a status card with a live status indicator 
 ## Features
 
 - **HTTP health checks** — probe any URL with configurable timeout, optional redirect following, and optional expected status code matching beyond plain 2xx.
-- **Ping probes** — ICMP ping with automatic TCP fallback for environments without raw socket access (e.g. containers). *Planned — the scheduler logs a warning and does not yet execute ping probes.*
+- **Ping probes** — ICMP ping with automatic TCP fallback for environments without raw socket access (e.g. containers). _Planned — the scheduler logs a warning and does not yet execute ping probes._
 - **Scheduled probing** — per-monitor intervals with random start jitter to avoid thundering herd on startup.
 - **Runtime monitor management** — add, remove, enable, and disable monitors without restarting.
 - **SQLite storage** — single-file database in WAL mode, no external database server required. Backups are a file copy.
@@ -128,19 +128,19 @@ All configuration is done through environment variables. There is no config file
 
 Minitor auto-loads a `.env` file (plus an optional `.env.local` override) from the current working directory at startup, so you can keep configuration out of the shell. Real environment variables always take precedence over `.env` values, and `.env.local` overrides `.env`. A missing or malformed auto-loaded `.env` is logged as a warning rather than a startup failure; pass `--env-file /path/to/file` to load from a different location (errors on an explicitly requested file are fatal), or `--env-file ""` to disable loading. Note that `$VAR` expansion happens per-file, so `.env.local` values cannot reference variables defined in `.env`.
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PORT` | `8080` | HTTP listen port |
-| `DATA_DIR` | `./data` | Directory for persistent data; the SQLite database lives at `<DATA_DIR>/minitor.db` |
-| `ADMIN_PASSWORD` | *(empty)* | If set, the dashboard requires login; if empty, the app is completely open |
-| `SECRET_KEY` | auto-generated | HMAC-SHA256 key used to sign session cookies. If unset, a random key is generated and sessions are invalidated on restart |
-| `SECURE_COOKIES` | `false` | Set to `true` to add the `Secure` flag to cookies (requires HTTPS, e.g. behind a reverse proxy) |
-| `RETENTION_DAYS` | `30` | Number of days to retain probe results; must be at least `1`. Parsed and validated, but automatic pruning is not yet implemented |
-| `SMTP_HOST` | *(empty)* | SMTP server hostname |
-| `SMTP_PORT` | *(empty)* | SMTP server port |
-| `SMTP_USERNAME` | *(empty)* | SMTP authentication username |
-| `SMTP_PASSWORD` | *(empty)* | SMTP authentication password |
-| `SMTP_FROM` | *(empty)* | From address used for alert emails |
+| Variable         | Default        | Description                                                                                                                      |
+| ---------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`           | `8080`         | HTTP listen port                                                                                                                 |
+| `DATA_DIR`       | `./data`       | Directory for persistent data; the SQLite database lives at `<DATA_DIR>/minitor.db`                                              |
+| `ADMIN_PASSWORD` | _(empty)_      | If set, the dashboard requires login; if empty, the app is completely open                                                       |
+| `SECRET_KEY`     | auto-generated | HMAC-SHA256 key used to sign session cookies. If unset, a random key is generated and sessions are invalidated on restart        |
+| `SECURE_COOKIES` | `false`        | Set to `true` to add the `Secure` flag to cookies (requires HTTPS, e.g. behind a reverse proxy)                                  |
+| `RETENTION_DAYS` | `30`           | Number of days to retain probe results; must be at least `1`. Parsed and validated, but automatic pruning is not yet implemented |
+| `SMTP_HOST`      | _(empty)_      | SMTP server hostname                                                                                                             |
+| `SMTP_PORT`      | _(empty)_      | SMTP server port                                                                                                                 |
+| `SMTP_USERNAME`  | _(empty)_      | SMTP authentication username                                                                                                     |
+| `SMTP_PASSWORD`  | _(empty)_      | SMTP authentication password                                                                                                     |
+| `SMTP_FROM`      | _(empty)_      | From address used for alert emails                                                                                               |
 
 **Validation rules**
 
@@ -173,12 +173,12 @@ npm ci          # install the TailwindCSS CLI
 
 ### Commands
 
-| Command | Description |
-| --- | --- |
-| `just dev` | Run the server in dev mode (`go run . -data-dir ./data`) |
-| `just build` | Full build: compile CSS, then the Go binary |
-| `just test` | Run all Go tests (`go test ./...`) |
-| `just css` | Rebuild the TailwindCSS output only |
+| Command      | Description                                              |
+| ------------ | -------------------------------------------------------- |
+| `just dev`   | Run the server in dev mode (`go run . -data-dir ./data`) |
+| `just build` | Full build: compile CSS, then the Go binary              |
+| `just test`  | Run all Go tests (`go test ./...`)                       |
+| `just css`   | Rebuild the TailwindCSS output only                      |
 
 Without `just`:
 
@@ -213,10 +213,10 @@ contrib/
 
 ### CLI flags
 
-| Flag | Default | Description |
-| --- | --- | --- |
-| `--port` | `8080` | HTTP listen port |
-| `--data-dir` | `./data` | Directory for persistent data |
-| `--db-path` | `<data-dir>/minitor.db` | Path to the SQLite database |
-| `--migrate` | — | Run database migrations and exit |
-| `--version` | — | Print version and exit |
+| Flag         | Default                 | Description                      |
+| ------------ | ----------------------- | -------------------------------- |
+| `--port`     | `8080`                  | HTTP listen port                 |
+| `--data-dir` | `./data`                | Directory for persistent data    |
+| `--db-path`  | `<data-dir>/minitor.db` | Path to the SQLite database      |
+| `--migrate`  | —                       | Run database migrations and exit |
+| `--version`  | —                       | Print version and exit           |

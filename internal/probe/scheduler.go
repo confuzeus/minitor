@@ -220,8 +220,7 @@ func (s *Scheduler) runProbe(m models.Monitor) {
 	case "http":
 		result = RunHTTPProbe(m)
 	case "ping":
-		slog.Warn("scheduler: ping probe not yet implemented", "monitor_id", m.ID, "name", m.Name)
-		return
+		result = RunPingProbe(m)
 	default:
 		slog.Warn("scheduler: unknown probe type", "type", m.Type, "monitor_id", m.ID)
 		return

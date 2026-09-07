@@ -15,8 +15,8 @@
   <form hx-{{if .IsNew}}post{{else}}put{{end}}="{{if .IsNew}}/monitors{{else}}/monitors/{{.Monitor.ID}}{{end}}"
     hx-target="body" hx-swap="innerHTML"
     method="POST"
+    x-data="{ type: '{{.Monitor.Type}}' }"
     class="bg-surface border border-border rounded-lg p-6 space-y-6">
-    <input type="hidden" name="type" value="{{.Monitor.Type}}">
 
     <div x-data="{ nameCount: 0 }" x-init="nameCount = $refs.name.value.length">
       <div class="flex items-center justify-between mb-1">
@@ -29,8 +29,21 @@
     </div>
 
     <div>
-      <label for="url" class="block text-body font-medium text-ink mb-1">Target URL</label>
-      <input id="url" name="url" type="url" required placeholder="https://example.com" value="{{.Monitor.URL}}"
+      <label for="type" class="block text-body font-medium text-ink mb-1">Type</label>
+      <select id="type" name="type" x-model="type"
+        class="w-full px-3 py-2 border border-border rounded-md text-body text-ink bg-surface focus:outline-none focus:ring-[3px] focus:ring-brand/40 focus:border-brand">
+        <option value="http" {{if eq .Monitor.Type "http"}}selected{{end}}>HTTP &mdash; check a URL</option>
+        <option value="ping" {{if eq .Monitor.Type "ping"}}selected{{end}}>Ping &mdash; check a host</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="url" class="block text-body font-medium text-ink mb-1">
+        <span x-show="type === 'http'">Target URL</span>
+        <span x-show="type === 'ping'" x-cloak>Host / IP address</span>
+      </label>
+      <input id="url" name="url" type="text" required value="{{.Monitor.URL}}"
+        :placeholder="type === 'http' ? 'https://example.com' : 'example.com or 10.0.0.1'"
         class="w-full px-3 py-2 border border-border rounded-md text-body text-ink bg-surface focus:outline-none focus:ring-[3px] focus:ring-brand/40 focus:border-brand">
     </div>
 
@@ -47,7 +60,7 @@
       </div>
     </div>
 
-    <div>
+    <div x-show="type === 'http'" x-cloak>
       <label for="expected_status_code" class="block text-body font-medium text-ink mb-1">Expected status code</label>
       <input id="expected_status_code" name="expected_status_code" type="number" min="100" max="599" step="1" placeholder="200"
         value="{{if .Monitor.ExpectedStatusCode}}{{.Monitor.ExpectedStatusCode}}{{end}}"
@@ -56,15 +69,17 @@
     </div>
 
     <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-body font-medium text-ink">Follow redirects</p>
-          <p class="text-small text-ink-secondary">Follow 3xx redirects when checking.</p>
+      <div x-show="type === 'http'" x-cloak>
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-body font-medium text-ink">Follow redirects</p>
+            <p class="text-small text-ink-secondary">Follow 3xx redirects when checking.</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="follow_redirects" class="sr-only peer" {{if .Monitor.FollowRedirects}}checked{{end}}>
+            <div class="w-10 h-6 bg-border peer-focus:ring-[3px] peer-focus:ring-brand/40 rounded-full peer-checked:bg-success transition-colors"></div>
+          </label>
         </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" name="follow_redirects" class="sr-only peer" {{if .Monitor.FollowRedirects}}checked{{end}}>
-          <div class="w-10 h-6 bg-border peer-focus:ring-[3px] peer-focus:ring-brand/40 rounded-full peer-checked:bg-success transition-colors"></div>
-        </label>
       </div>
 
       <div class="flex items-center justify-between">

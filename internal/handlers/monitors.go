@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -228,7 +229,12 @@ func parseMonitorForm(r *http.Request) (models.Monitor, error) {
 
 	require("name is required", m.Name != "")
 	require("name must be 100 characters or fewer", len([]rune(m.Name)) <= 100)
+	require("type must be http or ping", m.Type == "http" || m.Type == "ping")
 	require("url is required", m.URL != "")
+	if m.Type == "http" {
+		u, err := url.Parse(m.URL)
+		require("url must be a valid http or https URL", err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "")
+	}
 
 	if interval, ok := parsePositiveInt(r.FormValue("interval")); ok {
 		m.Interval = interval

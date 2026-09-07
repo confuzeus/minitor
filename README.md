@@ -31,7 +31,7 @@ After adding, recipients are listed with their linked monitors:
 ## Features
 
 - **HTTP health checks** — probe any URL with configurable timeout, optional redirect following, and optional expected status code matching beyond plain 2xx.
-- **Ping probes** — ICMP ping with automatic TCP fallback for environments without raw socket access (e.g. containers). _Planned — the scheduler logs a warning and does not yet execute ping probes._
+- **Ping probes** — ICMP ping of any host or IP, with automatic TCP fallback (port 80) for environments without raw socket access (e.g. containers).
 - **Scheduled probing** — per-monitor intervals with random start jitter to avoid thundering herd on startup.
 - **Runtime monitor management** — add, remove, enable, and disable monitors without restarting.
 - **SQLite storage** — single-file database in WAL mode, no external database server required. Backups are a file copy.

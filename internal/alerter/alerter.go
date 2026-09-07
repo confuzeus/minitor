@@ -148,7 +148,7 @@ func buildEmailBody(monitor models.Monitor, result models.ProbeResult, alertType
 		sb.WriteString("Minitor RECOVERY alert\n\n")
 	}
 	sb.WriteString("Monitor: " + monitor.Name + "\n")
-	sb.WriteString("URL: " + monitor.URL + "\n")
+	sb.WriteString("Target: " + monitor.URL + "\n")
 	sb.WriteString("Status: " + strings.ToUpper(result.Status) + "\n")
 	sb.WriteString("Checked at: " + result.Timestamp + "\n")
 	if result.StatusCode != nil {

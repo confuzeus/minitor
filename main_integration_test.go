@@ -225,7 +225,7 @@ func TestFullStartupIntegration(t *testing.T) {
 			"To: ops@example.com",
 			"Subject: DOWN: test-monitor",
 			"Monitor: test-monitor",
-			"URL: " + target.URL,
+			"Target: " + target.URL,
 			"Status: DOWN",
 		} {
 			if !strings.Contains(s, want) {

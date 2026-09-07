@@ -62,7 +62,7 @@
       </div>
     </div>
 
-    <div class="mt-5 pt-5 border-t border-border grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-body">
+    <div class="mt-5 pt-5 border-t border-border grid grid-cols-2 sm:grid-cols-3 {{if eq .Monitor.Type "http"}}lg:grid-cols-6{{else}}lg:grid-cols-4{{end}} gap-4 text-body">
       <div>
         <p class="text-small font-medium text-ink-secondary">Interval</p>
         <p class="text-ink mt-0.5">{{.Monitor.Interval}}s</p>
@@ -71,6 +71,7 @@
         <p class="text-small font-medium text-ink-secondary">Timeout</p>
         <p class="text-ink mt-0.5">{{.Monitor.Timeout}}s</p>
       </div>
+      {{if eq .Monitor.Type "http"}}
       <div>
         <p class="text-small font-medium text-ink-secondary">Follow redirects</p>
         <p class="text-ink mt-0.5">{{if .Monitor.FollowRedirects}}Yes{{else}}No{{end}}</p>
@@ -79,6 +80,7 @@
         <p class="text-small font-medium text-ink-secondary">Expected status</p>
         <p class="text-ink mt-0.5">{{if .Monitor.ExpectedStatusCode}}{{.Monitor.ExpectedStatusCode}}{{else}}—{{end}}</p>
       </div>
+      {{end}}
       <div>
         <p class="text-small font-medium text-ink-secondary">Last checked</p>
         <p class="text-ink mt-0.5">{{if .Latest}}{{.Latest.Timestamp}}{{else}}Never{{end}}</p>

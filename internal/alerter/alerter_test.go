@@ -97,7 +97,7 @@ func TestBuildEmailBody(t *testing.T) {
 			wantSub: []string{
 				"Minitor DOWN alert",
 				"Monitor: Example",
-				"URL: https://example.com",
+				"Target: https://example.com",
 				"Status: DOWN",
 				"Checked at: 2026-08-08 12:00:00",
 				"Error: connection refused",

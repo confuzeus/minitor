@@ -37,7 +37,7 @@ After adding, recipients are listed with their linked monitors:
 - **SQLite storage** — single-file database in WAL mode, no external database server required. Backups are a file copy.
 - **Live dashboard** — HTMX-powered dashboard that polls every 30 seconds, no full page reloads.
 - **Monitor CRUD** — full create/read/update/delete via the web UI with server-side form validation.
-- **Email alerts** — plain-text SMTP alerts on down and recovery transitions, with per-recipient consecutive-failure thresholds.
+- **Email alerts** — plain-text SMTP alerts on down and recovery transitions, with per-recipient consecutive-failure thresholds and outage duration in each email.
 - **Alert recipients** — manage recipients by name and email and link them to one or more monitors.
 - **Optional authentication** — set `ADMIN_PASSWORD` to protect the dashboard with an HMAC-signed session cookie; leave it unset for a completely open instance.
 - **Health check endpoint** — `GET /api/status` returns `{"status":"ok"}` for external monitoring of Minitor itself.

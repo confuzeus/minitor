@@ -227,6 +227,8 @@ func TestFullStartupIntegration(t *testing.T) {
 			"Monitor: test-monitor",
 			"Target: " + target.URL,
 			"Status: DOWN",
+			"Down since:",
+			"Down for:",
 		} {
 			if !strings.Contains(s, want) {
 				t.Errorf("down alert email missing %q:\n%s", want, s)
@@ -249,6 +251,11 @@ func TestFullStartupIntegration(t *testing.T) {
 		}
 		if !strings.Contains(s, "Status: UP") {
 			t.Errorf("recovery alert email missing status:\n%s", s)
+		}
+		for _, want := range []string{"Down since:", "Down for:"} {
+			if !strings.Contains(s, want) {
+				t.Errorf("recovery alert email missing %q:\n%s", want, s)
+			}
 		}
 	case <-time.After(15 * time.Second):
 		t.Fatal("timed out waiting for recovery alert email")

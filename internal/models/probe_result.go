@@ -102,6 +102,33 @@ func GetLatestResultForMonitor(db *sql.DB, monitorID int64) (*ProbeResult, error
 	return r, nil
 }
 
+// GetCurrentOutageStart returns the first failed probe in a monitor's current
+// run of failures: the earliest "down" result after the most recent "up"
+// result that precedes the given result (the one that triggered an alert). It
+// returns nil when no such failure run exists, for example when the monitor
+// has never failed.
+//
+// Results are ordered by their autoincrementing id, which increases with time
+// for a given monitor because its probes run sequentially.
+func GetCurrentOutageStart(db *sql.DB, monitorID int64, beforeID int64) (*ProbeResult, error) {
+	query := `SELECT ` + probeResultColumns + ` FROM probe_results
+		WHERE monitor_id = ? AND status = ? AND id <= ?
+		  AND id > COALESCE((
+		      SELECT MAX(id) FROM probe_results
+		      WHERE monitor_id = ? AND status = ? AND id < ?
+		  ), 0)
+		ORDER BY id ASC LIMIT 1`
+	r, err := scanProbeResult(db.QueryRow(query, monitorID, StatusDown, beforeID,
+		monitorID, StatusUp, beforeID))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get current outage start for monitor %d: %w", monitorID, err)
+	}
+	return r, nil
+}
+
 func GetLastNResults(db *sql.DB, monitorID int64, n int) ([]ProbeResult, error) {
 	query := `SELECT ` + probeResultColumns + ` FROM probe_results
 		WHERE monitor_id = ? ORDER BY timestamp DESC, id DESC LIMIT ?`

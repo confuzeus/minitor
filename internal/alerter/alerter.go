@@ -8,10 +8,35 @@ import (
 	"net/smtp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/confuzeus/minitor/internal/models"
 	"github.com/confuzeus/minitor/internal/settings"
 )
+
+// timestampFormat is the layout the probe code assigns to a result before it is
+// persisted. Reads from the database return RFC 3339 instead (see
+// parseTimestamp).
+const timestampFormat = "2006-01-02 15:04:05"
+
+// parseTimestamp parses a probe timestamp. Persisted results come back from the
+// SQLite driver as RFC 3339, while the plain layout above is accepted for
+// results that have not been round-tripped through the database.
+func parseTimestamp(s string) (time.Time, error) {
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t, nil
+	}
+	return time.Parse(timestampFormat, s)
+}
+
+// downtimeInfo describes how long a monitor has been down at the time an alert
+// is sent. Since is the timestamp of the first failed probe in the current
+// outage; Duration is a human-readable rendering of the elapsed time.
+type downtimeInfo struct {
+	Since    string
+	Duration string
+	Valid    bool
+}
 
 // SendMailFunc delivers an email message to the given recipients over SMTP. It
 // mirrors the signature of net/smtp.SendMail and is injectable so tests can
@@ -79,10 +104,51 @@ func (a *Alerter) Notify(monitorID int64, result models.ProbeResult) {
 	}
 
 	if len(downRecipients) > 0 {
-		go a.send(downRecipients, "DOWN: "+monitor.Name, buildEmailBody(*monitor, result, models.StatusDown))
+		downtime := a.computeDowntime(monitorID, result)
+		go a.send(downRecipients, "DOWN: "+monitor.Name, buildEmailBody(*monitor, result, models.StatusDown, downtime))
 	}
 	if len(recoveryRecipients) > 0 {
-		go a.send(recoveryRecipients, "RECOVERED: "+monitor.Name, buildEmailBody(*monitor, result, models.StatusUp))
+		downtime := a.computeDowntime(monitorID, result)
+		go a.send(recoveryRecipients, "RECOVERED: "+monitor.Name, buildEmailBody(*monitor, result, models.StatusUp, downtime))
+	}
+}
+
+// computeDowntime resolves when the monitor's current outage began and how long
+// it has lasted up to the triggering result. It returns an invalid downtimeInfo
+// when the outage start cannot be determined, so callers omit the fields.
+func (a *Alerter) computeDowntime(monitorID int64, result models.ProbeResult) downtimeInfo {
+	start, err := models.GetCurrentOutageStart(a.db, monitorID, result.ID)
+	if err != nil {
+		slog.Error("alerter: failed to load outage start", "error", err, "monitor_id", monitorID)
+		return downtimeInfo{}
+	}
+	if start == nil {
+		return downtimeInfo{}
+	}
+	return formatDowntime(start.Timestamp, result.Timestamp)
+}
+
+// formatDowntime builds a downtimeInfo from the outage-start timestamp and the
+// timestamp of the result that triggered the alert. It returns an invalid
+// downtimeInfo when either timestamp cannot be parsed.
+func formatDowntime(since, checkedAt string) downtimeInfo {
+	startTime, err := parseTimestamp(since)
+	if err != nil {
+		return downtimeInfo{}
+	}
+	endTime, err := parseTimestamp(checkedAt)
+	if err != nil {
+		return downtimeInfo{}
+	}
+
+	duration := endTime.Sub(startTime)
+	if duration < 0 {
+		duration = 0
+	}
+	return downtimeInfo{
+		Since:    since,
+		Duration: duration.Round(time.Second).String(),
+		Valid:    true,
 	}
 }
 
@@ -140,7 +206,7 @@ func detectUpTransition(history []models.ProbeResult, consecutiveFailures int) b
 	return true
 }
 
-func buildEmailBody(monitor models.Monitor, result models.ProbeResult, alertType string) string {
+func buildEmailBody(monitor models.Monitor, result models.ProbeResult, alertType string, downtime downtimeInfo) string {
 	var sb strings.Builder
 	if alertType == models.StatusDown {
 		sb.WriteString("Minitor DOWN alert\n\n")
@@ -151,6 +217,10 @@ func buildEmailBody(monitor models.Monitor, result models.ProbeResult, alertType
 	sb.WriteString("Target: " + monitor.URL + "\n")
 	sb.WriteString("Status: " + strings.ToUpper(result.Status) + "\n")
 	sb.WriteString("Checked at: " + result.Timestamp + "\n")
+	if downtime.Valid {
+		sb.WriteString("Down since: " + downtime.Since + "\n")
+		sb.WriteString("Down for: " + downtime.Duration + "\n")
+	}
 	if result.StatusCode != nil {
 		fmt.Fprintf(&sb, "HTTP status code: %d\n", *result.StatusCode)
 	}

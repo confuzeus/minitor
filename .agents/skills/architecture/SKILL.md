@@ -158,7 +158,7 @@ All Go code lives under `internal/` to prevent external import. The `embed.go` f
 
 ### Alert Email Flow
 
-The email is plain text with no HTML formatting. It includes: monitor name, target URL or host, what happened (went down / recovered), timestamp of the failing/succeeding probe, error message if down, and a note that this is from Minitor. The `SMTP_FROM` address is used as the sender. Subject line: `[Minitor] {{.MonitorName}} is DOWN` or `[Minitor] {{.MonitorName}} RECOVERED`.
+The email is plain text with no HTML formatting. It includes: monitor name, target URL or host, what happened (went down / recovered), timestamp of the failing/succeeding probe, error message if down, and a note that this is from Minitor. It also reports downtime: the timestamp of the first failed probe in the current outage (`Down since`) and a human-readable duration up to the alerting probe (`Down for`, e.g. `12m30s`). The `SMTP_FROM` address is used as the sender. Subject line: `[Minitor] {{.MonitorName}} is DOWN` or `[Minitor] {{.MonitorName}} RECOVERED`.
 
 ---
 
@@ -253,6 +253,8 @@ Each probe runs in its own goroutine. The scheduler does not wait for a probe to
 The alerter is stateless. When notified of a new probe result, it queries the last `consecutive_failures` results for that monitor. If all are failures and the previous batch contained at least one success (or this is the first batch), the monitor is considered newly down. If all are successes and the previous batch contained at least one failure, the monitor is considered recovered. All other cases produce no alert.
 
 This approach inherently handles the consecutive failure threshold without maintaining in-memory state, at the cost of an extra database query per probe. Given the scale (hundreds of probes per minute at most), this query cost is negligible.
+
+To report downtime, the alerter additionally queries `probe_results` for the start of the current outage: the first failed probe after the most recent success preceding the alerting result. This is a separate query rather than a slice of the in-memory history because an outage can be longer than the `consecutive_failures` window. It keeps the engine stateless.
 
 ### Email Sending
 

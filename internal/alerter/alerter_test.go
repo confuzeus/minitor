@@ -87,37 +87,44 @@ func TestBuildEmailBody(t *testing.T) {
 		monitor   models.Monitor
 		result    models.ProbeResult
 		alertType string
+		downtime  downtimeInfo
 		wantSub   []string
 	}{
 		{
 			name:      "down alert with error",
 			monitor:   monitor,
-			result:    models.ProbeResult{Status: models.StatusDown, Timestamp: "2026-08-08 12:00:00", ErrorMsg: strPtr("connection refused")},
+			result:    models.ProbeResult{Status: models.StatusDown, Timestamp: "2026-08-08T12:00:00Z", ErrorMsg: strPtr("connection refused")},
 			alertType: models.StatusDown,
+			downtime:  downtimeInfo{Since: "2026-08-08T11:58:00Z", Duration: "2m0s", Valid: true},
 			wantSub: []string{
 				"Minitor DOWN alert",
 				"Monitor: Example",
 				"Target: https://example.com",
 				"Status: DOWN",
-				"Checked at: 2026-08-08 12:00:00",
+				"Checked at: 2026-08-08T12:00:00Z",
+				"Down since: 2026-08-08T11:58:00Z",
+				"Down for: 2m0s",
 				"Error: connection refused",
 			},
 		},
 		{
 			name:      "down alert with status code and latency",
 			monitor:   monitor,
-			result:    models.ProbeResult{Status: models.StatusDown, Timestamp: "2026-08-08 12:00:00", StatusCode: intPtr(500), LatencyMs: int64Ptr(250)},
+			result:    models.ProbeResult{Status: models.StatusDown, Timestamp: "2026-08-08T12:00:00Z", StatusCode: intPtr(500), LatencyMs: int64Ptr(250)},
 			alertType: models.StatusDown,
+			downtime:  downtimeInfo{Since: "2026-08-08T12:00:00Z", Duration: "0s", Valid: true},
 			wantSub: []string{
 				"Minitor DOWN alert",
 				"HTTP status code: 500",
 				"Latency: 250 ms",
+				"Down since: 2026-08-08T12:00:00Z",
+				"Down for: 0s",
 			},
 		},
 		{
 			name:      "down alert without optional fields",
 			monitor:   monitor,
-			result:    models.ProbeResult{Status: models.StatusDown, Timestamp: "2026-08-08 12:00:00"},
+			result:    models.ProbeResult{Status: models.StatusDown, Timestamp: "2026-08-08T12:00:00Z"},
 			alertType: models.StatusDown,
 			wantSub: []string{
 				"Minitor DOWN alert",
@@ -127,20 +134,23 @@ func TestBuildEmailBody(t *testing.T) {
 		{
 			name:      "recovery alert",
 			monitor:   monitor,
-			result:    models.ProbeResult{Status: models.StatusUp, Timestamp: "2026-08-08 13:00:00", StatusCode: intPtr(200), LatencyMs: int64Ptr(120)},
+			result:    models.ProbeResult{Status: models.StatusUp, Timestamp: "2026-08-08T13:00:00Z", StatusCode: intPtr(200), LatencyMs: int64Ptr(120)},
 			alertType: models.StatusUp,
+			downtime:  downtimeInfo{Since: "2026-08-08T12:30:00Z", Duration: "30m0s", Valid: true},
 			wantSub: []string{
 				"Minitor RECOVERY alert",
 				"Status: UP",
 				"HTTP status code: 200",
 				"Latency: 120 ms",
+				"Down since: 2026-08-08T12:30:00Z",
+				"Down for: 30m0s",
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			body := buildEmailBody(tt.monitor, tt.result, tt.alertType)
+			body := buildEmailBody(tt.monitor, tt.result, tt.alertType, tt.downtime)
 			for _, want := range tt.wantSub {
 				if !strings.Contains(body, want) {
 					t.Errorf("email body missing %q:\n%s", want, body)
@@ -155,11 +165,49 @@ func TestBuildEmailBodyExcludesMissingOptionalFields(t *testing.T) {
 		models.Monitor{Name: "Example", URL: "https://example.com"},
 		models.ProbeResult{Status: models.StatusDown, Timestamp: "2026-08-08 12:00:00"},
 		models.StatusDown,
+		downtimeInfo{},
 	)
-	for _, unwanted := range []string{"HTTP status code:", "Latency:", "Error:"} {
+	for _, unwanted := range []string{"HTTP status code:", "Latency:", "Error:", "Down since:", "Down for:"} {
 		if strings.Contains(body, unwanted) {
 			t.Errorf("email body unexpectedly contains %q:\n%s", unwanted, body)
 		}
+	}
+}
+
+func TestFormatDowntime(t *testing.T) {
+	tests := []struct {
+		name      string
+		since     string
+		checkedAt string
+		wantValid bool
+		wantSince string
+		wantDur   string
+	}{
+		{name: "rfc3339 minutes", since: "2026-08-08T12:00:00Z", checkedAt: "2026-08-08T12:12:30Z", wantValid: true, wantSince: "2026-08-08T12:00:00Z", wantDur: "12m30s"},
+		{name: "minutes", since: "2026-08-08 12:00:00", checkedAt: "2026-08-08 12:12:30", wantValid: true, wantSince: "2026-08-08 12:00:00", wantDur: "12m30s"},
+		{name: "hours and seconds", since: "2026-08-08 10:00:00", checkedAt: "2026-08-08 11:02:03", wantValid: true, wantSince: "2026-08-08 10:00:00", wantDur: "1h2m3s"},
+		{name: "immediate down", since: "2026-08-08 12:00:00", checkedAt: "2026-08-08 12:00:00", wantValid: true, wantSince: "2026-08-08 12:00:00", wantDur: "0s"},
+		{name: "negative clamps to zero", since: "2026-08-08 12:00:05", checkedAt: "2026-08-08 12:00:00", wantValid: true, wantSince: "2026-08-08 12:00:05", wantDur: "0s"},
+		{name: "invalid start", since: "not-a-time", checkedAt: "2026-08-08 12:00:00", wantValid: false},
+		{name: "invalid end", since: "2026-08-08 12:00:00", checkedAt: "nope", wantValid: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatDowntime(tt.since, tt.checkedAt)
+			if got.Valid != tt.wantValid {
+				t.Fatalf("formatDowntime(%q, %q).Valid = %v, want %v", tt.since, tt.checkedAt, got.Valid, tt.wantValid)
+			}
+			if !tt.wantValid {
+				return
+			}
+			if got.Since != tt.wantSince {
+				t.Errorf("Since = %q, want %q", got.Since, tt.wantSince)
+			}
+			if got.Duration != tt.wantDur {
+				t.Errorf("Duration = %q, want %q", got.Duration, tt.wantDur)
+			}
+		})
 	}
 }
 
